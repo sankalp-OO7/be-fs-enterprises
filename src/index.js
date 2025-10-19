@@ -7,18 +7,17 @@ const mongoose = require("mongoose");
 dotenv.config();
 
 const app = express();
+const PORT = process.env.PORT || 5000;
 
 // ------------------------------------------------------------------
 // FIX: UPDATED CORS CONFIGURATION FOR PRODUCTION DEPLOYMENT
 // ------------------------------------------------------------------
 
 // 1. Define allowed origins. Use environment variables for security and flexibility.
-// For example:
-// In your production .env file (or AWS Lambda environment config) add:
-// ALLOWED_ORIGINS=http://localhost:5173,https://your-vercel-app-name.vercel.app,https://www.yourcustomdomain.com
-const allowedOrigins = (
-  process.env.ALLOWED_ORIGINS || "http://localhost:5173"
-).split(",");
+// Example for .env: ALLOWED_ORIGINS=http://localhost:5173,https://your-production-frontend.com
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || "http://localhost:5173")
+  .split(",")
+  .map((origin) => origin.trim()); // Trim whitespace for safety
 
 // Define the CORS options using a function to check the incoming origin
 const corsOptions = {
@@ -29,14 +28,19 @@ const corsOptions = {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
+      // Production Enhancement: Log the rejected origin for server-side debugging
+      console.error(
+        `CORS Policy Denied for Origin: ${origin}. Allowed: ${allowedOrigins.join(
+          ", "
+        )}`
+      );
       callback(
         new Error(`CORS policy violation: Origin ${origin} not allowed`)
       );
     }
   },
 
-  // 2. CRITICAL FIX: Must be true for the Axios client to successfully send credentials
-  //    (like the JWT token or session cookies).
+  // CRITICAL FIX: Must be true for the Axios client to successfully send credentials
   credentials: true,
 
   // Optional: You can explicitly list allowed methods
@@ -44,6 +48,9 @@ const corsOptions = {
 
   // Optional: You can explicitly list allowed headers
   allowedHeaders: "Content-Type,Authorization",
+
+  // Cache preflight requests for 24 hours (86400 seconds) to improve performance
+  maxAge: 86400,
 };
 
 // Apply the CORS middleware with the dynamic options
@@ -70,19 +77,41 @@ app.use("/api/products", productRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/orders", orderRoutes);
 
-// MongoDB connection
-mongoose
-  .connect(process.env.MONGODB_URI || "mongodb://localhost:27017/hardware-shop")
-  .then(() => console.log("Connected to MongoDB"))
-  .catch((err) => console.error("MongoDB connection error:", err));
-
 // Basic route
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to Hardware Shop API" });
 });
 
-// Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+// Production Enhancement: Global Error Handler Middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack); // Log the error stack for debugging
+  // Determine status code. Default to 500 if status is not set.
+  const statusCode = err.status || 500;
+  // Send a generic error response in production
+  res.status(statusCode).send({
+    success: false,
+    message:
+      statusCode === 500 && process.env.NODE_ENV === "production"
+        ? "Internal Server Error"
+        : err.message,
+  });
 });
+
+// ------------------------------------------------------------------
+// Production Enhancement: Start server ONLY after MongoDB connection
+// ------------------------------------------------------------------
+mongoose
+  .connect(process.env.MONGODB_URI || "mongodb://localhost:27017/hardware-shop")
+  .then(() => {
+    console.log("Connected to MongoDB");
+    // Start server only upon successful DB connection
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+      console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
+    });
+  })
+  .catch((err) => {
+    // Log error and exit process if DB connection fails
+    console.error("FATAL: MongoDB connection error:", err.message);
+    process.exit(1);
+  });
