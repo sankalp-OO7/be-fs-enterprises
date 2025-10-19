@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
+const serverless = require("serverless-http"); // ✅ ADD THIS
 
 // Load environment variables
 dotenv.config();
@@ -78,7 +79,7 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/orders", orderRoutes);
 
 // Basic route
-app.get("/", (req, res) => {
+app.get("/welcome", (req, res) => {
   res.json({ message: "Welcome to Hardware Shop API" });
 });
 

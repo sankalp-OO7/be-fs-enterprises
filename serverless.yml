@@ -1,0 +1,52 @@
+service: hardware-shop-api
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: us-east-1
+  stage: ${opt:stage, 'dev'}
+  environment:
+    NODE_ENV: ${self:provider.stage}
+    MONGODB_URI: ${env:MONGODB_URI}
+    JWT_SECRET: ${env:JWT_SECRET}
+
+  # IAM permissions
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+          Resource: "*"
+
+plugins:
+  - serverless-offline
+
+functions:
+  app:
+    handler: src/index.handler
+    events:
+      - http:
+          path: /
+          method: ANY
+          cors: true
+      - http:
+          path: /{proxy+}
+          method: ANY
+          cors: true
+
+package:
+  patterns:
+    - "!./**"          # Exclude everything first
+    - "src/**"         # Include entire src folder recursively
+    - "node_modules/**" # Include node_modules
+    - "*.js"           # Include root JS files
+    - "*.json"         # Include package.json etc.
+    - ".env"           # Include environment file
+    
+custom:
+  serverless-offline:
+    httpPort: ${env:PORT, '5000'}
+    noPrependStageInUrl: true
