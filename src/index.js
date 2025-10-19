@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
-const serverless = require("serverless-http"); // ✅ ADD THIS
+const serverless = require("serverless-http");
 
 // Load environment variables
 dotenv.config();
@@ -11,108 +11,166 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ------------------------------------------------------------------
-// FIX: UPDATED CORS CONFIGURATION FOR PRODUCTION DEPLOYMENT
+// CORS CONFIGURATION FOR SERVERLESS
 // ------------------------------------------------------------------
-
-// 1. Define allowed origins. Use environment variables for security and flexibility.
-// Example for .env: ALLOWED_ORIGINS=http://localhost:5173,https://your-production-frontend.com
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || "http://localhost:5173")
   .split(",")
-  .map((origin) => origin.trim()); // Trim whitespace for safety
+  .map((origin) => origin.trim());
 
-// Define the CORS options using a function to check the incoming origin
 const corsOptions = {
-  // Use a function to dynamically check if the incoming origin is allowed
   origin: (origin, callback) => {
-    // Allow requests with no origin (like Postman or curl requests)
-    // OR if the origin is explicitly included in our allowed list.
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      // Production Enhancement: Log the rejected origin for server-side debugging
-      console.error(
-        `CORS Policy Denied for Origin: ${origin}. Allowed: ${allowedOrigins.join(
-          ", "
-        )}`
-      );
-      callback(
-        new Error(`CORS policy violation: Origin ${origin} not allowed`)
-      );
+      console.error(`CORS Policy Denied for Origin: ${origin}. Allowed: ${allowedOrigins.join(", ")}`);
+      callback(new Error(`CORS policy violation: Origin ${origin} not allowed`));
     }
   },
-
-  // CRITICAL FIX: Must be true for the Axios client to successfully send credentials
   credentials: true,
-
-  // Optional: You can explicitly list allowed methods
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-
-  // Optional: You can explicitly list allowed headers
   allowedHeaders: "Content-Type,Authorization",
-
-  // Cache preflight requests for 24 hours (86400 seconds) to improve performance
   maxAge: 86400,
 };
 
-// Apply the CORS middleware with the dynamic options
 app.use(cors(corsOptions));
 
 // ------------------------------------------------------------------
-// END OF CORS FIX
+// MIDDLEWARE
 // ------------------------------------------------------------------
-
-// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Routes
+// ------------------------------------------------------------------
+// ROUTES
+// ------------------------------------------------------------------
 const authRoutes = require("./routes/auth.routes.js");
 const userRoutes = require("./routes/user.routes.js");
 const productRoutes = require("./routes/product.routes.js");
 const categoryRoutes = require("./routes/category.routes.js");
 const orderRoutes = require("./routes/order.routes");
 
+// Use routes with /api prefix for local development
+// Serverless will handle the path mapping via serverless.yml
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/orders", orderRoutes);
 
-// Basic route
+// ------------------------------------------------------------------
+// HEALTH CHECK & ROOT ENDPOINT
+// ------------------------------------------------------------------
+app.get("/", (req, res) => {
+  res.json({ 
+    message: "Hardware Shop API is running",
+    environment: process.env.NODE_ENV || "development",
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.get("/welcome", (req, res) => {
   res.json({ message: "Welcome to Hardware Shop API" });
 });
 
-// Production Enhancement: Global Error Handler Middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack); // Log the error stack for debugging
-  // Determine status code. Default to 500 if status is not set.
-  const statusCode = err.status || 500;
-  // Send a generic error response in production
-  res.status(statusCode).send({
-    success: false,
-    message:
-      statusCode === 500 && process.env.NODE_ENV === "production"
-        ? "Internal Server Error"
-        : err.message,
+app.get("/health", (req, res) => {
+  res.status(200).json({ 
+    status: "OK", 
+    database: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+    timestamp: new Date().toISOString()
   });
 });
 
 // ------------------------------------------------------------------
-// Production Enhancement: Start server ONLY after MongoDB connection
+// PROXY PATH HANDLING FOR SERVERLESS
 // ------------------------------------------------------------------
-mongoose
-  .connect(process.env.MONGODB_URI || "mongodb://localhost:27017/hardware-shop")
-  .then(() => {
-    console.log("Connected to MongoDB");
-    // Start server only upon successful DB connection
-    app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
-      console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
+// This handles the base path mapping when deployed to AWS Lambda
+// For example: /dev/api/... or /prod/api/...
+app.use((req, res, next) => {
+  // Remove the stage prefix (dev, prod, etc.) from the path
+  const originalUrl = req.originalUrl;
+  const stage = process.env.SERVERLESS_STAGE || 'dev';
+  
+  if (originalUrl.startsWith(`/${stage}/`)) {
+    req.url = originalUrl.replace(`/${stage}`, '');
+  }
+  next();
+});
+
+// ------------------------------------------------------------------
+// ERROR HANDLING MIDDLEWARE
+// ------------------------------------------------------------------
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  
+  // Handle CORS errors
+  if (err.message.includes('CORS policy')) {
+    return res.status(403).json({
+      success: false,
+      message: "CORS policy violation: Origin not allowed"
     });
-  })
-  .catch((err) => {
-    // Log error and exit process if DB connection fails
-    console.error("FATAL: MongoDB connection error:", err.message);
-    process.exit(1);
+  }
+  
+  const statusCode = err.status || 500;
+  res.status(statusCode).json({
+    success: false,
+    message: statusCode === 500 && process.env.NODE_ENV === "production" 
+      ? "Internal Server Error" 
+      : err.message,
   });
+});
+
+// 404 Handler - MUST be after all routes
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: `Route not found: ${req.method} ${req.originalUrl}`
+  });
+});
+
+// ------------------------------------------------------------------
+// DATABASE CONNECTION & SERVERLESS CONFIG
+// ------------------------------------------------------------------
+
+let isDatabaseConnected = false;
+
+const connectDatabase = async () => {
+  try {
+    if (!isDatabaseConnected) {
+      await mongoose.connect(
+        process.env.MONGODB_URI || "mongodb://localhost:27017/hardware-shop",
+        {
+          useNewUrlParser: true,
+          useUnifiedTopology: true,
+        }
+      );
+      isDatabaseConnected = true;
+      console.log("✅ Connected to MongoDB");
+    }
+  } catch (error) {
+    console.error("❌ MongoDB connection error:", error.message);
+    isDatabaseConnected = false;
+  }
+};
+
+// For local development
+if (process.env.IS_OFFLINE || process.env.NODE_ENV === 'development') {
+  connectDatabase().then(() => {
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running locally on port ${PORT}`);
+      console.log(`📝 Environment: ${process.env.NODE_ENV || "development"}`);
+      console.log(`🌐 Health check: http://localhost:${PORT}/health`);
+    });
+  });
+} else {
+  // For Lambda - connect on cold start
+  connectDatabase();
+}
+
+// Export the serverless handler
+module.exports.handler = serverless(app, {
+  // Add binary support if needed
+  binary: ['image/*', 'application/pdf']
+});
+
+// Export app for testing
+module.exports.app = app;
