@@ -9,16 +9,34 @@ dotenv.config();
 const app = express();
 
 // ------------------------------------------------------------------
-// FIX: UPDATED CORS CONFIGURATION
+// FIX: UPDATED CORS CONFIGURATION FOR PRODUCTION DEPLOYMENT
 // ------------------------------------------------------------------
 
-// Define the CORS options
-const corsOptions = {
-  // 1. Specify the exact origin of your frontend development server (Vite default is 5173)
-  origin: "http://localhost:5173",
+// 1. Define allowed origins. Use environment variables for security and flexibility.
+// For example:
+// In your production .env file (or AWS Lambda environment config) add:
+// ALLOWED_ORIGINS=http://localhost:5173,https://your-vercel-app-name.vercel.app,https://www.yourcustomdomain.com
+const allowedOrigins = (
+  process.env.ALLOWED_ORIGINS || "http://localhost:5173"
+).split(",");
 
-  // 2. CRITICAL FIX: Must be set to true because your Axios client
-  //    sends withCredentials: true. This resolves the error.
+// Define the CORS options using a function to check the incoming origin
+const corsOptions = {
+  // Use a function to dynamically check if the incoming origin is allowed
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like Postman or curl requests)
+    // OR if the origin is explicitly included in our allowed list.
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(
+        new Error(`CORS policy violation: Origin ${origin} not allowed`)
+      );
+    }
+  },
+
+  // 2. CRITICAL FIX: Must be true for the Axios client to successfully send credentials
+  //    (like the JWT token or session cookies).
   credentials: true,
 
   // Optional: You can explicitly list allowed methods
@@ -28,7 +46,7 @@ const corsOptions = {
   allowedHeaders: "Content-Type,Authorization",
 };
 
-// Apply the CORS middleware with the new options
+// Apply the CORS middleware with the dynamic options
 app.use(cors(corsOptions));
 
 // ------------------------------------------------------------------
