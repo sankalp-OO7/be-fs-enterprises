@@ -8,8 +8,34 @@ dotenv.config();
 
 const app = express();
 
+// ------------------------------------------------------------------
+// FIX: UPDATED CORS CONFIGURATION
+// ------------------------------------------------------------------
+
+// Define the CORS options
+const corsOptions = {
+  // 1. Specify the exact origin of your frontend development server (Vite default is 5173)
+  origin: "http://localhost:5173",
+
+  // 2. CRITICAL FIX: Must be set to true because your Axios client
+  //    sends withCredentials: true. This resolves the error.
+  credentials: true,
+
+  // Optional: You can explicitly list allowed methods
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+
+  // Optional: You can explicitly list allowed headers
+  allowedHeaders: "Content-Type,Authorization",
+};
+
+// Apply the CORS middleware with the new options
+app.use(cors(corsOptions));
+
+// ------------------------------------------------------------------
+// END OF CORS FIX
+// ------------------------------------------------------------------
+
 // Middleware
-app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
