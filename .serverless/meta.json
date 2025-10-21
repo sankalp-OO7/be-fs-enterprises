@@ -134,9 +134,9 @@
               "Properties": {
                 "Code": {
                   "S3Bucket": "serverless-framework-deployments-us-east-1-331cd560-dabc",
-                  "S3Key": "serverless/hardware-shop-api/dev/1760900058576-2025-10-19T18:54:18.576Z/hardware-shop-api.zip"
+                  "S3Key": "serverless/hardware-shop-api/dev/1761080690843-2025-10-21T21:04:50.843Z/hardware-shop-api.zip"
                 },
-                "Handler": "src/index.handler",
+                "Handler": "lambda.handler",
                 "Runtime": "nodejs20.x",
                 "FunctionName": "hardware-shop-api-dev-app",
                 "MemorySize": 1024,
@@ -160,14 +160,14 @@
                 "AppLogGroup"
               ]
             },
-            "AppLambdaVersionNN0mcpD2qBEDLQuEE9Ps9mszMKvGIt4SSP2W1vU6bD8": {
+            "AppLambdaVersionxU7GuaIUIAY1DSZF9Z1Myf5VNQOBloZpMG8wZsNynE": {
               "Type": "AWS::Lambda::Version",
               "DeletionPolicy": "Retain",
               "Properties": {
                 "FunctionName": {
                   "Ref": "AppLambdaFunction"
                 },
-                "CodeSha256": "mZ+gbvhqWsKLLcPoa3HhtuFnLpIzHTwd+5//g2l6Uzs="
+                "CodeSha256": "mVm5kn8ahpvmMAYU204Ij7WcGv/fS0MdBTPdxxt9yRg="
               }
             },
             "ApiGatewayRestApi": {
@@ -389,7 +389,7 @@
                 "AppLambdaPermissionApiGateway"
               ]
             },
-            "ApiGatewayDeployment1760900040899": {
+            "ApiGatewayDeployment1761080677181": {
               "Type": "AWS::ApiGateway::Deployment",
               "Properties": {
                 "RestApiId": {
@@ -452,7 +452,7 @@
             "AppLambdaFunctionQualifiedArn": {
               "Description": "Current Lambda function version",
               "Value": {
-                "Ref": "AppLambdaVersionNN0mcpD2qBEDLQuEE9Ps9mszMKvGIt4SSP2W1vU6bD8"
+                "Ref": "AppLambdaVersionxU7GuaIUIAY1DSZF9Z1Myf5VNQOBloZpMG8wZsNynE"
               },
               "Export": {
                 "Name": "sls-hardware-shop-api-dev-AppLambdaFunctionQualifiedArn"
@@ -493,7 +493,7 @@
       ],
       "functions": {
         "app": {
-          "handler": "src/index.handler",
+          "handler": "lambda.handler",
           "events": [
             {
               "http": {
@@ -552,7 +552,7 @@
           "timeout": 6,
           "runtime": "nodejs20.x",
           "vpc": {},
-          "versionLogicalId": "AppLambdaVersionNN0mcpD2qBEDLQuEE9Ps9mszMKvGIt4SSP2W1vU6bD8"
+          "versionLogicalId": "AppLambdaVersionxU7GuaIUIAY1DSZF9Z1Myf5VNQOBloZpMG8wZsNynE"
         }
       },
       "package": {
@@ -567,7 +567,7 @@
         "artifactsS3KeyDirname": "serverless/hardware-shop-api/dev/code-artifacts",
         "deploymentBucket": "serverless-framework-deployments-us-east-1-331cd560-dabc",
         "artifact": "/home/balu/Documents/fs/be-fs-enterprises/.serverless/hardware-shop-api.zip",
-        "artifactDirectoryName": "serverless/hardware-shop-api/dev/1760900058576-2025-10-19T18:54:18.576Z"
+        "artifactDirectoryName": "serverless/hardware-shop-api/dev/1761080690843-2025-10-21T21:04:50.843Z"
       },
       "custom": {
         "serverless-offline": {
@@ -705,9 +705,9 @@
             "Properties": {
               "Code": {
                 "S3Bucket": "serverless-framework-deployments-us-east-1-331cd560-dabc",
-                "S3Key": "serverless/hardware-shop-api/dev/1760900058576-2025-10-19T18:54:18.576Z/hardware-shop-api.zip"
+                "S3Key": "serverless/hardware-shop-api/dev/1761080690843-2025-10-21T21:04:50.843Z/hardware-shop-api.zip"
               },
-              "Handler": "src/index.handler",
+              "Handler": "lambda.handler",
               "Runtime": "nodejs20.x",
               "FunctionName": "hardware-shop-api-dev-app",
               "MemorySize": 1024,
@@ -731,14 +731,14 @@
               "AppLogGroup"
             ]
           },
-          "AppLambdaVersionNN0mcpD2qBEDLQuEE9Ps9mszMKvGIt4SSP2W1vU6bD8": {
+          "AppLambdaVersionxU7GuaIUIAY1DSZF9Z1Myf5VNQOBloZpMG8wZsNynE": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "AppLambdaFunction"
               },
-              "CodeSha256": "mZ+gbvhqWsKLLcPoa3HhtuFnLpIzHTwd+5//g2l6Uzs="
+              "CodeSha256": "mVm5kn8ahpvmMAYU204Ij7WcGv/fS0MdBTPdxxt9yRg="
             }
           },
           "ApiGatewayRestApi": {
@@ -960,7 +960,7 @@
               "AppLambdaPermissionApiGateway"
             ]
           },
-          "ApiGatewayDeployment1760900040899": {
+          "ApiGatewayDeployment1761080677181": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
@@ -1023,7 +1023,7 @@
           "AppLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "AppLambdaVersionNN0mcpD2qBEDLQuEE9Ps9mszMKvGIt4SSP2W1vU6bD8"
+              "Ref": "AppLambdaVersionxU7GuaIUIAY1DSZF9Z1Myf5VNQOBloZpMG8wZsNynE"
             },
             "Export": {
               "Name": "sls-hardware-shop-api-dev-AppLambdaFunctionQualifiedArn"
@@ -1068,7 +1068,7 @@
       "serviceProvider": null,
       "instanceParameters": null
     },
-    "serviceRawFile": "service: hardware-shop-api\n\nprovider:\n  name: aws\n  runtime: nodejs20.x\n  region: us-east-1\n  stage: ${opt:stage, 'dev'}\n  environment:\n    NODE_ENV: ${self:provider.stage}\n    MONGODB_URI: ${env:MONGODB_URI}\n    JWT_SECRET: ${env:JWT_SECRET}\n    ALLOWED_ORIGINS: \"https://fsinterprises.vercel.app,http://localhost:5173\"\n\n  # IAM permissions\n  iam:\n    role:\n      statements:\n        - Effect: Allow\n          Action:\n            - logs:CreateLogGroup\n            - logs:CreateLogStream\n            - logs:PutLogEvents\n          Resource: \"*\"\n\nplugins:\n  - serverless-offline\n\nfunctions:\n  app:\n    handler: src/index.handler\n    events:\n      - http:\n          path: /\n          method: ANY\n          cors:\n            origin:\n              - https://fsinterprises.vercel.app\n              - http://localhost:5173\n            allowCredentials: true\n            headers:\n              - Content-Type\n              - Authorization\n              - Origin\n              - X-Requested-With\n              - Accept\n      - http:\n          path: /{proxy+}\n          method: ANY\n          cors:\n            origin:\n              - https://fsinterprises.vercel.app\n              - http://localhost:5173\n            allowCredentials: true\n            headers:\n              - Content-Type\n              - Authorization\n              - Origin\n              - X-Requested-With\n              - Accept\n\npackage:\n  patterns:\n    - \"!./**\"            # Exclude everything first\n    - \"src/**\"           # Include entire src folder recursively\n    - \"node_modules/**\"  # Include node_modules\n    - \"*.js\"             # Include root JS files\n    - \"*.json\"           # Include package.json etc.\n    - \".env\"             # Include environment file\n\ncustom:\n  serverless-offline:\n    httpPort: ${env:PORT, '5000'}\n    noPrependStageInUrl: true\n",
+    "serviceRawFile": "service: hardware-shop-api\n\nprovider:\n  name: aws\n  runtime: nodejs20.x\n  region: us-east-1\n  stage: ${opt:stage, 'dev'}\n  environment:\n    NODE_ENV: ${self:provider.stage}\n    MONGODB_URI: ${env:MONGODB_URI}\n    JWT_SECRET: ${env:JWT_SECRET}\n    ALLOWED_ORIGINS: \"https://fsinterprises.vercel.app,http://localhost:5173\"\n\n  # IAM permissions\n  iam:\n    role:\n      statements:\n        - Effect: Allow\n          Action:\n            - logs:CreateLogGroup\n            - logs:CreateLogStream\n            - logs:PutLogEvents\n          Resource: \"*\"\n\nplugins:\n  - serverless-offline\n\nfunctions:\n  app:\n    handler: lambda.handler\n    events:\n      - http:\n          path: /\n          method: ANY\n          cors:\n            origin:\n              - https://fsinterprises.vercel.app\n              - http://localhost:5173\n            allowCredentials: true\n            headers:\n              - Content-Type\n              - Authorization\n              - Origin\n              - X-Requested-With\n              - Accept\n      - http:\n          path: /{proxy+}\n          method: ANY\n          cors:\n            origin:\n              - https://fsinterprises.vercel.app\n              - http://localhost:5173\n            allowCredentials: true\n            headers:\n              - Content-Type\n              - Authorization\n              - Origin\n              - X-Requested-With\n              - Accept\n\npackage:\n  patterns:\n    - \"!./**\"            # Exclude everything first\n    - \"src/**\"           # Include entire src folder recursively\n    - \"node_modules/**\"  # Include node_modules\n    - \"*.js\"             # Include root JS files\n    - \"*.json\"           # Include package.json etc.\n    - \".env\"             # Include environment file\n\ncustom:\n  serverless-offline:\n    httpPort: ${env:PORT, '5000'}\n    noPrependStageInUrl: true\n",
     "command": [
       "deploy"
     ],
@@ -1083,12 +1083,12 @@
     "serviceProviderAwsCfStackName": "hardware-shop-api-dev",
     "serviceProviderAwsCfStackId": "arn:aws:cloudformation:us-east-1:736985486097:stack/hardware-shop-api-dev/c746c230-ac5b-11f0-a087-127502b4fed1",
     "serviceProviderAwsCfStackCreated": "2025-10-18T19:51:03.631Z",
-    "serviceProviderAwsCfStackUpdated": "2025-10-19T18:42:51.960Z",
+    "serviceProviderAwsCfStackUpdated": "2025-10-21T20:35:01.608Z",
     "serviceProviderAwsCfStackStatus": "UPDATE_COMPLETE",
     "serviceProviderAwsCfStackOutputs": [
       {
         "OutputKey": "AppLambdaFunctionQualifiedArn",
-        "OutputValue": "arn:aws:lambda:us-east-1:736985486097:function:hardware-shop-api-dev-app:15",
+        "OutputValue": "arn:aws:lambda:us-east-1:736985486097:function:hardware-shop-api-dev-app:21",
         "Description": "Current Lambda function version",
         "ExportName": "sls-hardware-shop-api-dev-AppLambdaFunctionQualifiedArn"
       },
@@ -1206,9 +1206,9 @@
           "Properties": {
             "Code": {
               "S3Bucket": "serverless-framework-deployments-us-east-1-331cd560-dabc",
-              "S3Key": "serverless/hardware-shop-api/dev/1760900058576-2025-10-19T18:54:18.576Z/hardware-shop-api.zip"
+              "S3Key": "serverless/hardware-shop-api/dev/1761080690843-2025-10-21T21:04:50.843Z/hardware-shop-api.zip"
             },
-            "Handler": "src/index.handler",
+            "Handler": "lambda.handler",
             "Runtime": "nodejs20.x",
             "FunctionName": "hardware-shop-api-dev-app",
             "MemorySize": 1024,
@@ -1232,14 +1232,14 @@
             "AppLogGroup"
           ]
         },
-        "AppLambdaVersionNN0mcpD2qBEDLQuEE9Ps9mszMKvGIt4SSP2W1vU6bD8": {
+        "AppLambdaVersionxU7GuaIUIAY1DSZF9Z1Myf5VNQOBloZpMG8wZsNynE": {
           "Type": "AWS::Lambda::Version",
           "DeletionPolicy": "Retain",
           "Properties": {
             "FunctionName": {
               "Ref": "AppLambdaFunction"
             },
-            "CodeSha256": "mZ+gbvhqWsKLLcPoa3HhtuFnLpIzHTwd+5//g2l6Uzs="
+            "CodeSha256": "mVm5kn8ahpvmMAYU204Ij7WcGv/fS0MdBTPdxxt9yRg="
           }
         },
         "ApiGatewayRestApi": {
@@ -1461,7 +1461,7 @@
             "AppLambdaPermissionApiGateway"
           ]
         },
-        "ApiGatewayDeployment1760900040899": {
+        "ApiGatewayDeployment1761080677181": {
           "Type": "AWS::ApiGateway::Deployment",
           "Properties": {
             "RestApiId": {
@@ -1524,7 +1524,7 @@
         "AppLambdaFunctionQualifiedArn": {
           "Description": "Current Lambda function version",
           "Value": {
-            "Ref": "AppLambdaVersionNN0mcpD2qBEDLQuEE9Ps9mszMKvGIt4SSP2W1vU6bD8"
+            "Ref": "AppLambdaVersionxU7GuaIUIAY1DSZF9Z1Myf5VNQOBloZpMG8wZsNynE"
           },
           "Export": {
             "Name": "sls-hardware-shop-api-dev-AppLambdaFunctionQualifiedArn"
