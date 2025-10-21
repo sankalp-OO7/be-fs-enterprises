@@ -9,6 +9,7 @@ provider:
     NODE_ENV: ${self:provider.stage}
     MONGODB_URI: ${env:MONGODB_URI}
     JWT_SECRET: ${env:JWT_SECRET}
+    ALLOWED_ORIGINS: "https://fsinterprises.vercel.app,http://localhost:5173"
 
   # IAM permissions
   iam:
@@ -26,26 +27,46 @@ plugins:
 
 functions:
   app:
-    handler: src/index.handler
+    handler: lambda.handler
     events:
       - http:
           path: /
           method: ANY
-          cors: true
+          cors:
+            origin:
+              - https://fsinterprises.vercel.app
+              - http://localhost:5173
+            allowCredentials: true
+            headers:
+              - Content-Type
+              - Authorization
+              - Origin
+              - X-Requested-With
+              - Accept
       - http:
           path: /{proxy+}
           method: ANY
-          cors: true
+          cors:
+            origin:
+              - https://fsinterprises.vercel.app
+              - http://localhost:5173
+            allowCredentials: true
+            headers:
+              - Content-Type
+              - Authorization
+              - Origin
+              - X-Requested-With
+              - Accept
 
 package:
   patterns:
-    - "!./**"          # Exclude everything first
-    - "src/**"         # Include entire src folder recursively
-    - "node_modules/**" # Include node_modules
-    - "*.js"           # Include root JS files
-    - "*.json"         # Include package.json etc.
-    - ".env"           # Include environment file
-    
+    - "!./**"            # Exclude everything first
+    - "src/**"           # Include entire src folder recursively
+    - "node_modules/**"  # Include node_modules
+    - "*.js"             # Include root JS files
+    - "*.json"           # Include package.json etc.
+    - ".env"             # Include environment file
+
 custom:
   serverless-offline:
     httpPort: ${env:PORT, '5000'}

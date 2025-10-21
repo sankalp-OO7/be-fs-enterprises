@@ -12,7 +12,8 @@
       "environment": {
         "NODE_ENV": "dev",
         "MONGODB_URI": "mongodb+srv://HariBomen:MySecrtePassword@cluster0.ho1md4e.mongodb.net/",
-        "JWT_SECRET": "your-secret-key"
+        "JWT_SECRET": "your-secret-key",
+        "ALLOWED_ORIGINS": "https://fsinterprises.vercel.app,http://localhost:5173"
       },
       "iam": {
         "role": {
@@ -126,7 +127,7 @@
             "Properties": {
               "Code": {
                 "S3Bucket": "serverless-framework-deployments-us-east-1-331cd560-dabc",
-                "S3Key": "serverless/hardware-shop-api/dev/1760892928090-2025-10-19T16:55:28.090Z/hardware-shop-api.zip"
+                "S3Key": "serverless/hardware-shop-api/dev/1760900058576-2025-10-19T18:54:18.576Z/hardware-shop-api.zip"
               },
               "Handler": "src/index.handler",
               "Runtime": "nodejs20.x",
@@ -137,7 +138,8 @@
                 "Variables": {
                   "NODE_ENV": "dev",
                   "MONGODB_URI": "mongodb+srv://HariBomen:MySecrtePassword@cluster0.ho1md4e.mongodb.net/",
-                  "JWT_SECRET": "your-secret-key"
+                  "JWT_SECRET": "your-secret-key",
+                  "ALLOWED_ORIGINS": "https://fsinterprises.vercel.app,http://localhost:5173"
                 }
               },
               "Role": {
@@ -151,14 +153,14 @@
               "AppLogGroup"
             ]
           },
-          "AppLambdaVersionKTZLvOFccgcckI9rLqbqb7E4f26hfuscnRRANIPe4s": {
+          "AppLambdaVersionNN0mcpD2qBEDLQuEE9Ps9mszMKvGIt4SSP2W1vU6bD8": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "AppLambdaFunction"
               },
-              "CodeSha256": "nUxi/tCH7YQXUrYJ+gAu9y1GwBom1hYf2fdAGF4FV3s="
+              "CodeSha256": "mZ+gbvhqWsKLLcPoa3HhtuFnLpIzHTwd+5//g2l6Uzs="
             }
           },
           "ApiGatewayRestApi": {
@@ -199,7 +201,8 @@
                   "ResponseParameters": {
                     "method.response.header.Access-Control-Allow-Origin": true,
                     "method.response.header.Access-Control-Allow-Headers": true,
-                    "method.response.header.Access-Control-Allow-Methods": true
+                    "method.response.header.Access-Control-Allow-Methods": true,
+                    "method.response.header.Access-Control-Allow-Credentials": true
                   },
                   "ResponseModels": {}
                 }
@@ -215,9 +218,10 @@
                   {
                     "StatusCode": "200",
                     "ResponseParameters": {
-                      "method.response.header.Access-Control-Allow-Origin": "'*'",
-                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
-                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,DELETE,GET,HEAD,PATCH,POST,PUT'"
+                      "method.response.header.Access-Control-Allow-Origin": "'https://fsinterprises.vercel.app,http://localhost:5173'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,Authorization,Origin,X-Requested-With,Accept'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,DELETE,GET,HEAD,PATCH,POST,PUT'",
+                      "method.response.header.Access-Control-Allow-Credentials": "'true'"
                     },
                     "ResponseTemplates": {
                       "application/json": ""
@@ -247,7 +251,8 @@
                   "ResponseParameters": {
                     "method.response.header.Access-Control-Allow-Origin": true,
                     "method.response.header.Access-Control-Allow-Headers": true,
-                    "method.response.header.Access-Control-Allow-Methods": true
+                    "method.response.header.Access-Control-Allow-Methods": true,
+                    "method.response.header.Access-Control-Allow-Credentials": true
                   },
                   "ResponseModels": {}
                 }
@@ -263,9 +268,10 @@
                   {
                     "StatusCode": "200",
                     "ResponseParameters": {
-                      "method.response.header.Access-Control-Allow-Origin": "'*'",
-                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
-                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,DELETE,GET,HEAD,PATCH,POST,PUT'"
+                      "method.response.header.Access-Control-Allow-Origin": "'https://fsinterprises.vercel.app,http://localhost:5173'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,Authorization,Origin,X-Requested-With,Accept'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,DELETE,GET,HEAD,PATCH,POST,PUT'",
+                      "method.response.header.Access-Control-Allow-Credentials": "'true'"
                     },
                     "ResponseTemplates": {
                       "application/json": ""
@@ -376,7 +382,7 @@
               "AppLambdaPermissionApiGateway"
             ]
           },
-          "ApiGatewayDeployment1760892911456": {
+          "ApiGatewayDeployment1760900040899": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
@@ -439,7 +445,7 @@
           "AppLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "AppLambdaVersionKTZLvOFccgcckI9rLqbqb7E4f26hfuscnRRANIPe4s"
+              "Ref": "AppLambdaVersionNN0mcpD2qBEDLQuEE9Ps9mszMKvGIt4SSP2W1vU6bD8"
             },
             "Export": {
               "Name": "sls-hardware-shop-api-dev-AppLambdaFunctionQualifiedArn"
@@ -494,21 +500,22 @@
               "path": "",
               "method": "any",
               "cors": {
-                "origin": "*",
+                "origin": [
+                  "https://fsinterprises.vercel.app",
+                  "http://localhost:5173"
+                ],
                 "methods": [
                   "OPTIONS",
                   "ANY"
                 ],
                 "headers": [
                   "Content-Type",
-                  "X-Amz-Date",
                   "Authorization",
-                  "X-Api-Key",
-                  "X-Amz-Security-Token",
-                  "X-Amz-User-Agent",
-                  "X-Amzn-Trace-Id"
+                  "Origin",
+                  "X-Requested-With",
+                  "Accept"
                 ],
-                "allowCredentials": false
+                "allowCredentials": true
               },
               "integration": "AWS_PROXY"
             }
@@ -518,21 +525,22 @@
               "path": "{proxy+}",
               "method": "any",
               "cors": {
-                "origin": "*",
+                "origin": [
+                  "https://fsinterprises.vercel.app",
+                  "http://localhost:5173"
+                ],
                 "methods": [
                   "OPTIONS",
                   "ANY"
                 ],
                 "headers": [
                   "Content-Type",
-                  "X-Amz-Date",
                   "Authorization",
-                  "X-Api-Key",
-                  "X-Amz-Security-Token",
-                  "X-Amz-User-Agent",
-                  "X-Amzn-Trace-Id"
+                  "Origin",
+                  "X-Requested-With",
+                  "Accept"
                 ],
-                "allowCredentials": false
+                "allowCredentials": true
               },
               "integration": "AWS_PROXY"
             }
@@ -544,7 +552,7 @@
         "timeout": 6,
         "runtime": "nodejs20.x",
         "vpc": {},
-        "versionLogicalId": "AppLambdaVersionKTZLvOFccgcckI9rLqbqb7E4f26hfuscnRRANIPe4s"
+        "versionLogicalId": "AppLambdaVersionNN0mcpD2qBEDLQuEE9Ps9mszMKvGIt4SSP2W1vU6bD8"
       }
     },
     "configValidationMode": "warn",
@@ -572,7 +580,7 @@
         "artifactsS3KeyDirname": "serverless/hardware-shop-api/dev/code-artifacts",
         "deploymentBucket": "serverless-framework-deployments-us-east-1-331cd560-dabc",
         "artifact": "/home/balu/Documents/fs/be-fs-enterprises/.serverless/hardware-shop-api.zip",
-        "artifactDirectoryName": "serverless/hardware-shop-api/dev/1760892928090-2025-10-19T16:55:28.090Z"
+        "artifactDirectoryName": "serverless/hardware-shop-api/dev/1760900058576-2025-10-19T18:54:18.576Z"
       },
       "custom": {
         "$ref": "$[\"service\"][\"custom\"]"
@@ -584,7 +592,7 @@
     "artifact": "/home/balu/Documents/fs/be-fs-enterprises/.serverless/hardware-shop-api.zip"
   },
   "package": {
-    "artifactDirectoryName": "serverless/hardware-shop-api/dev/1760892928090-2025-10-19T16:55:28.090Z",
+    "artifactDirectoryName": "serverless/hardware-shop-api/dev/1760900058576-2025-10-19T18:54:18.576Z",
     "artifact": "hardware-shop-api.zip"
   }
 }
