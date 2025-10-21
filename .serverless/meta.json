@@ -134,7 +134,7 @@
               "Properties": {
                 "Code": {
                   "S3Bucket": "serverless-framework-deployments-us-east-1-331cd560-dabc",
-                  "S3Key": "serverless/hardware-shop-api/dev/1761080690843-2025-10-21T21:04:50.843Z/hardware-shop-api.zip"
+                  "S3Key": "serverless/hardware-shop-api/dev/1761081130073-2025-10-21T21:12:10.073Z/hardware-shop-api.zip"
                 },
                 "Handler": "lambda.handler",
                 "Runtime": "nodejs20.x",
@@ -160,14 +160,14 @@
                 "AppLogGroup"
               ]
             },
-            "AppLambdaVersionxU7GuaIUIAY1DSZF9Z1Myf5VNQOBloZpMG8wZsNynE": {
+            "AppLambdaVersionC1l8OXhGymPnIr4vmiTWFK3tXQG0YmJS2jHii0qBc": {
               "Type": "AWS::Lambda::Version",
               "DeletionPolicy": "Retain",
               "Properties": {
                 "FunctionName": {
                   "Ref": "AppLambdaFunction"
                 },
-                "CodeSha256": "mVm5kn8ahpvmMAYU204Ij7WcGv/fS0MdBTPdxxt9yRg="
+                "CodeSha256": "eBhxFz6AEJwrRC+/JLpo3amI7O3nX1bR3NkwI4JmdFg="
               }
             },
             "ApiGatewayRestApi": {
@@ -389,7 +389,7 @@
                 "AppLambdaPermissionApiGateway"
               ]
             },
-            "ApiGatewayDeployment1761080677181": {
+            "ApiGatewayDeployment1761081115752": {
               "Type": "AWS::ApiGateway::Deployment",
               "Properties": {
                 "RestApiId": {
@@ -452,7 +452,7 @@
             "AppLambdaFunctionQualifiedArn": {
               "Description": "Current Lambda function version",
               "Value": {
-                "Ref": "AppLambdaVersionxU7GuaIUIAY1DSZF9Z1Myf5VNQOBloZpMG8wZsNynE"
+                "Ref": "AppLambdaVersionC1l8OXhGymPnIr4vmiTWFK3tXQG0YmJS2jHii0qBc"
               },
               "Export": {
                 "Name": "sls-hardware-shop-api-dev-AppLambdaFunctionQualifiedArn"
@@ -552,7 +552,7 @@
           "timeout": 6,
           "runtime": "nodejs20.x",
           "vpc": {},
-          "versionLogicalId": "AppLambdaVersionxU7GuaIUIAY1DSZF9Z1Myf5VNQOBloZpMG8wZsNynE"
+          "versionLogicalId": "AppLambdaVersionC1l8OXhGymPnIr4vmiTWFK3tXQG0YmJS2jHii0qBc"
         }
       },
       "package": {
@@ -567,7 +567,7 @@
         "artifactsS3KeyDirname": "serverless/hardware-shop-api/dev/code-artifacts",
         "deploymentBucket": "serverless-framework-deployments-us-east-1-331cd560-dabc",
         "artifact": "/home/balu/Documents/fs/be-fs-enterprises/.serverless/hardware-shop-api.zip",
-        "artifactDirectoryName": "serverless/hardware-shop-api/dev/1761080690843-2025-10-21T21:04:50.843Z"
+        "artifactDirectoryName": "serverless/hardware-shop-api/dev/1761081130073-2025-10-21T21:12:10.073Z"
       },
       "custom": {
         "serverless-offline": {
@@ -705,7 +705,7 @@
             "Properties": {
               "Code": {
                 "S3Bucket": "serverless-framework-deployments-us-east-1-331cd560-dabc",
-                "S3Key": "serverless/hardware-shop-api/dev/1761080690843-2025-10-21T21:04:50.843Z/hardware-shop-api.zip"
+                "S3Key": "serverless/hardware-shop-api/dev/1761081130073-2025-10-21T21:12:10.073Z/hardware-shop-api.zip"
               },
               "Handler": "lambda.handler",
               "Runtime": "nodejs20.x",
@@ -731,14 +731,14 @@
               "AppLogGroup"
             ]
           },
-          "AppLambdaVersionxU7GuaIUIAY1DSZF9Z1Myf5VNQOBloZpMG8wZsNynE": {
+          "AppLambdaVersionC1l8OXhGymPnIr4vmiTWFK3tXQG0YmJS2jHii0qBc": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "AppLambdaFunction"
               },
-              "CodeSha256": "mVm5kn8ahpvmMAYU204Ij7WcGv/fS0MdBTPdxxt9yRg="
+              "CodeSha256": "eBhxFz6AEJwrRC+/JLpo3amI7O3nX1bR3NkwI4JmdFg="
             }
           },
           "ApiGatewayRestApi": {
@@ -960,7 +960,7 @@
               "AppLambdaPermissionApiGateway"
             ]
           },
-          "ApiGatewayDeployment1761080677181": {
+          "ApiGatewayDeployment1761081115752": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
@@ -1023,7 +1023,7 @@
           "AppLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "AppLambdaVersionxU7GuaIUIAY1DSZF9Z1Myf5VNQOBloZpMG8wZsNynE"
+              "Ref": "AppLambdaVersionC1l8OXhGymPnIr4vmiTWFK3tXQG0YmJS2jHii0qBc"
             },
             "Export": {
               "Name": "sls-hardware-shop-api-dev-AppLambdaFunctionQualifiedArn"
@@ -1083,12 +1083,12 @@
     "serviceProviderAwsCfStackName": "hardware-shop-api-dev",
     "serviceProviderAwsCfStackId": "arn:aws:cloudformation:us-east-1:736985486097:stack/hardware-shop-api-dev/c746c230-ac5b-11f0-a087-127502b4fed1",
     "serviceProviderAwsCfStackCreated": "2025-10-18T19:51:03.631Z",
-    "serviceProviderAwsCfStackUpdated": "2025-10-21T20:35:01.608Z",
+    "serviceProviderAwsCfStackUpdated": "2025-10-21T21:05:15.139Z",
     "serviceProviderAwsCfStackStatus": "UPDATE_COMPLETE",
     "serviceProviderAwsCfStackOutputs": [
       {
         "OutputKey": "AppLambdaFunctionQualifiedArn",
-        "OutputValue": "arn:aws:lambda:us-east-1:736985486097:function:hardware-shop-api-dev-app:21",
+        "OutputValue": "arn:aws:lambda:us-east-1:736985486097:function:hardware-shop-api-dev-app:22",
         "Description": "Current Lambda function version",
         "ExportName": "sls-hardware-shop-api-dev-AppLambdaFunctionQualifiedArn"
       },
@@ -1206,7 +1206,7 @@
           "Properties": {
             "Code": {
               "S3Bucket": "serverless-framework-deployments-us-east-1-331cd560-dabc",
-              "S3Key": "serverless/hardware-shop-api/dev/1761080690843-2025-10-21T21:04:50.843Z/hardware-shop-api.zip"
+              "S3Key": "serverless/hardware-shop-api/dev/1761081130073-2025-10-21T21:12:10.073Z/hardware-shop-api.zip"
             },
             "Handler": "lambda.handler",
             "Runtime": "nodejs20.x",
@@ -1232,14 +1232,14 @@
             "AppLogGroup"
           ]
         },
-        "AppLambdaVersionxU7GuaIUIAY1DSZF9Z1Myf5VNQOBloZpMG8wZsNynE": {
+        "AppLambdaVersionC1l8OXhGymPnIr4vmiTWFK3tXQG0YmJS2jHii0qBc": {
           "Type": "AWS::Lambda::Version",
           "DeletionPolicy": "Retain",
           "Properties": {
             "FunctionName": {
               "Ref": "AppLambdaFunction"
             },
-            "CodeSha256": "mVm5kn8ahpvmMAYU204Ij7WcGv/fS0MdBTPdxxt9yRg="
+            "CodeSha256": "eBhxFz6AEJwrRC+/JLpo3amI7O3nX1bR3NkwI4JmdFg="
           }
         },
         "ApiGatewayRestApi": {
@@ -1461,7 +1461,7 @@
             "AppLambdaPermissionApiGateway"
           ]
         },
-        "ApiGatewayDeployment1761080677181": {
+        "ApiGatewayDeployment1761081115752": {
           "Type": "AWS::ApiGateway::Deployment",
           "Properties": {
             "RestApiId": {
@@ -1524,7 +1524,7 @@
         "AppLambdaFunctionQualifiedArn": {
           "Description": "Current Lambda function version",
           "Value": {
-            "Ref": "AppLambdaVersionxU7GuaIUIAY1DSZF9Z1Myf5VNQOBloZpMG8wZsNynE"
+            "Ref": "AppLambdaVersionC1l8OXhGymPnIr4vmiTWFK3tXQG0YmJS2jHii0qBc"
           },
           "Export": {
             "Name": "sls-hardware-shop-api-dev-AppLambdaFunctionQualifiedArn"
