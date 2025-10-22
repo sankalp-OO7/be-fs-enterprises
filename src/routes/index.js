@@ -7,6 +7,7 @@ const userRoutes = require("./user.routes");
 const productRoutes = require("./product.routes");
 const categoryRoutes = require("./category.routes");
 const orderRoutes = require("./order.routes");
+const uploadRoutes = require('./upload.routes');
 const { getHealthStatus } = require("../controllers/healthController");
 
 // Health check route
@@ -18,5 +19,6 @@ router.use("/users", userRoutes);
 router.use("/products", productRoutes);
 router.use("/categories", categoryRoutes);
 router.use("/orders", orderRoutes);
+router.use('/upload', uploadRoutes);
 
 module.exports = router;

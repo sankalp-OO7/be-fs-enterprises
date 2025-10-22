@@ -1,6 +1,8 @@
 const express = require("express");
 const dotenv = require("dotenv");
 
+dotenv.config();
+
 const { connectDatabase } = require("./config/database");
 const { corsMiddleware, allowedOrigins } = require("./config/cors");
 const requestLogger = require("./middleware/logger");
@@ -8,9 +10,7 @@ const urlRewriter = require("./middleware/urlRewriter");
 const { errorHandler, notFoundHandler } = require("./middleware/errorHandlers");
 const routes = require("./routes");
 
-// Server configuration
-dotenv.config();
-  
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
