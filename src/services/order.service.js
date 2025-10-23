@@ -10,7 +10,7 @@ exports.getOrdersByUser = async (userId) => {
 };
 
 exports.getAllOrders = async () => {
-  return await Order.find().populate("userId").populate("items.productId");
+  return await Order.find().populate("userId").populate("items.productId").sort({ createdAt: -1 });
 };
 
 exports.getOrderById = async (id) => {
