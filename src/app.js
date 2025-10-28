@@ -9,7 +9,7 @@ const requestLogger = require("./middleware/logger");
 const urlRewriter = require("./middleware/urlRewriter");
 const { errorHandler, notFoundHandler } = require("./middleware/errorHandlers");
 const routes = require("./routes");
-
+const { healthCheck } = require("./middleware/healthCheck");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -28,22 +28,11 @@ app.use(corsMiddleware);
 app.use(urlRewriter);
 
 // 4. Body parsers
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // 5. Health check route (simple, no CORS issues)
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Server is healthy',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development',
-    cors: {
-      allowedOrigins: allowedOrigins,
-      yourOrigin: req.headers.origin || 'No origin header'
-    }
-  });
-});
+app.get("/health", healthCheck);
 
 // 6. Main API routes
 app.use("/api", routes);
@@ -61,7 +50,7 @@ const startLocalServer = async () => {
     app.listen(PORT, () => {
       console.log(`🚀 Server running locally on port ${PORT}`);
       console.log(`📝 Environment: ${process.env.NODE_ENV || "development"}`);
-      console.log(`🛡️ CORS Allowed Origins: ${allowedOrigins.join(', ')}`);
+      console.log(`🛡️ CORS Allowed Origins: ${allowedOrigins.join(", ")}`);
       console.log(`🌐 Health check: http://localhost:${PORT}/health`);
       console.log(`🔍 API Base: http://localhost:${PORT}/api`);
     });

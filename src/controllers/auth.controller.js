@@ -6,7 +6,6 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 exports.register = async (req, res) => {
-  // ... (existing code for register)
   try {
     const { username, email, password } = req.body;
     const user = await authService.registerUser(username, email, password);
