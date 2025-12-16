@@ -3,10 +3,18 @@ const router = express.Router();
 const { auth, isAdmin } = require("../middleware/auth.middleware");
 const productController = require("../controllers/product.controller");
 
+// Public routes
 router.get("/", productController.getAllProducts);
-router.post("/", auth, isAdmin, productController.createProduct);
 router.get("/:id", productController.getProductById);
+router.get("/:productId/variants", productController.getProductVariants);
+
+// Admin only routes
+router.post("/", auth, isAdmin, productController.createProduct);
 router.put("/:id", auth, isAdmin, productController.updateProduct);
 router.delete("/:id", auth, isAdmin, productController.deleteProduct);
+
+// Search and filter routes
+router.get("/search/filter", productController.filterProducts);
+router.get("/category/:categoryId", productController.getProductsByCategory);
 
 module.exports = router;

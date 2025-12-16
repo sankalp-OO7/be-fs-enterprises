@@ -1,58 +1,185 @@
-const categoryService = require("../services/category.service.js");
+const Category = require("../models/category.model");
 
+// Get all categories
 exports.getAllCategories = async (req, res) => {
   try {
-    const categories = await categoryService.getAllCategories();
-    res.json(categories);
+    const categories = await Category.find()
+      .select("-createdAt -updatedAt -__v")
+      .sort({ name: 1 });
+
+    res.status(200).json({
+      success: true,
+      count: categories.length,
+      data: categories
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
   }
 };
 
+// Get single category by ID
 exports.getCategoryById = async (req, res) => {
   try {
-    const category = await categoryService.getCategoryById(req.params.id);
+    const { id } = req.params;
+    
+    const category = await Category.findById(id);
+    
     if (!category) {
-      return res.status(404).json({ message: "Category not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Category not found"
+      });
     }
-    res.json(category);
+
+    res.status(200).json({
+      success: true,
+      data: category
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
   }
 };
 
+// Create new category (Admin only)
 exports.createCategory = async (req, res) => {
   try {
-    const category = await categoryService.createCategory(req.body);
-    res.status(201).json(category);
+    const { name } = req.body;
+
+    if (!name || name.trim() === "") {
+      return res.status(400).json({
+        success: false,
+        message: "Category name is required"
+      });
+    }
+
+    // Check if category already exists
+    const existingCategory = await Category.findOne({ 
+      name: name.trim() 
+    });
+
+    if (existingCategory) {
+      return res.status(409).json({
+        success: false,
+        message: "Category already exists"
+      });
+    }
+
+    const category = new Category({
+      name: name.trim()
+    });
+
+    await category.save();
+
+    res.status(201).json({
+      success: true,
+      message: "Category created successfully",
+      data: category
+    });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error creating category",
+      error: error.message
+    });
   }
 };
 
+// Update category (Admin only)
 exports.updateCategory = async (req, res) => {
   try {
-    const category = await categoryService.updateCategory(
-      req.params.id,
-      req.body
-    );
-    if (!category) {
-      return res.status(404).json({ message: "Category not found" });
+    const { id } = req.params;
+    const { name } = req.body;
+
+    if (!name || name.trim() === "") {
+      return res.status(400).json({
+        success: false,
+        message: "Category name is required"
+      });
     }
-    res.json(category);
+
+    // Check if name already exists for another category
+    const existingCategory = await Category.findOne({ 
+      name: name.trim(),
+      _id: { $ne: id }
+    });
+
+    if (existingCategory) {
+      return res.status(409).json({
+        success: false,
+        message: "Category name already exists"
+      });
+    }
+
+    const category = await Category.findByIdAndUpdate(
+      id,
+      { name: name.trim() },
+      { new: true, runValidators: true }
+    );
+
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        message: "Category not found"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Category updated successfully",
+      data: category
+    });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error updating category",
+      error: error.message
+    });
   }
 };
 
+// Delete category (Admin only)
 exports.deleteCategory = async (req, res) => {
   try {
-    const category = await categoryService.deleteCategory(req.params.id);
+    const { id } = req.params;
+
+    // Check if category has products
+    // You'll need to import Product model for this check
+    // const Product = require("../models/product.model");
+    // const productsInCategory = await Product.countDocuments({ categoryId: id });
+    
+    // if (productsInCategory > 0) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: "Cannot delete category with existing products"
+    //   });
+    // }
+
+    const category = await Category.findByIdAndDelete(id);
+
     if (!category) {
-      return res.status(404).json({ message: "Category not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Category not found"
+      });
     }
-    res.json({ message: "Category deleted successfully" });
+
+    res.status(200).json({
+      success: true,
+      message: "Category deleted successfully"
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error deleting category",
+      error: error.message
+    });
   }
 };
