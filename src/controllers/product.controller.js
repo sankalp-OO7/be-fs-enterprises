@@ -6,8 +6,8 @@ const Category = require("../models/category.model");
 exports.getAllProducts = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
-    const skip = (page - 1) * limit;
+    const limit = req.query.limit ? parseInt(req.query.limit) : null;
+    const skip = limit ? (page - 1) * limit : 0;
 
     // Build query for filtering
     const query = {};
@@ -22,28 +22,34 @@ exports.getAllProducts = async (req, res) => {
       query.productName = { $regex: req.query.search, $options: "i" };
     }
 
+    const productsQuery = Product.find(query)
+      .populate("categoryId", "name")
+      .select("-createdAt -updatedAt -__v")
+      .sort({ productName: 1 });
+
+    if (limit) {
+      productsQuery.skip(skip).limit(limit);
+    }
+
     const [products, total] = await Promise.all([
-      Product.find(query)
-        .populate("categoryId", "name")
-        .select("-createdAt -updatedAt -__v")
-        .skip(skip)
-        .limit(limit)
-        .sort({ productName: 1 }),
+      productsQuery,
       Product.countDocuments(query)
     ]);
 
-    const totalPages = Math.ceil(total / limit);
+    const totalPages = limit ? Math.ceil(total / limit) : 1;
 
     res.status(200).json({
       success: true,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages,
-        hasNextPage: page < totalPages,
-        hasPrevPage: page > 1
-      },
+      pagination: limit
+        ? {
+            page,
+            limit,
+            total,
+            totalPages,
+            hasNextPage: page < totalPages,
+            hasPrevPage: page > 1
+          }
+        : null,
       data: products,
     });
   } catch (error) {
