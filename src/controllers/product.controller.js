@@ -11,7 +11,7 @@ exports.getAllProducts = async (req, res) => {
 
     // Build query for filtering
     const query = {};
-    
+
     // Filter by category if provided
     if (req.query.categoryId) {
       query.categoryId = req.query.categoryId;
@@ -33,7 +33,7 @@ exports.getAllProducts = async (req, res) => {
 
     const [products, total] = await Promise.all([
       productsQuery,
-      Product.countDocuments(query)
+      Product.countDocuments(query),
     ]);
 
     const totalPages = limit ? Math.ceil(total / limit) : 1;
@@ -47,7 +47,7 @@ exports.getAllProducts = async (req, res) => {
             total,
             totalPages,
             hasNextPage: page < totalPages,
-            hasPrevPage: page > 1
+            hasPrevPage: page > 1,
           }
         : null,
       data: products,
@@ -67,8 +67,7 @@ exports.getProductById = async (req, res) => {
     const { id } = req.params;
     const isAdmin = req.user?.role === "admin";
 
-    const product = await Product.findById(id)
-      .populate("categoryId", "name");
+    const product = await Product.findById(id).populate("categoryId", "name");
 
     if (!product) {
       return res.status(404).json({
@@ -83,7 +82,7 @@ exports.getProductById = async (req, res) => {
     // Format variants based on user role
     const formattedVariants = variants.map((variant) => {
       const variantData = variant.toObject();
-      
+
       // For non-admin users, hide actual price
       if (!isAdmin) {
         variantData.actualPrice = variantData.variantPrice;
@@ -116,12 +115,13 @@ exports.getProductById = async (req, res) => {
 exports.getProductVariants = async (req, res) => {
   try {
     const { productId } = req.params;
-    const isAdmin = req.user?.role === "admin";
 
-    // Check if product exists
-    const product = await Product.findById(productId)
-      .select("productName categoryId");
-    
+    const isAuthenticated = !!req.user;
+    console.log("isAuthenticated:", isAuthenticated, req.user);
+    const product = await Product.findById(productId).select(
+      "productName categoryId"
+    );
+
     if (!product) {
       return res.status(404).json({
         success: false,
@@ -129,30 +129,78 @@ exports.getProductVariants = async (req, res) => {
       });
     }
 
-    // Get variants
-    const variants = await Variant.find({ productId: productId })
-      .select("-createdAt -updatedAt -__v");
+    const variants = await Variant.find({ productId }).select(
+      "-createdAt -updatedAt -__v"
+    );
 
-    // Format variants based on user role
+    /* -----------------------------------------
+       AUTHENTICATED USER → FULL DATA
+    ------------------------------------------ */
+    if (isAuthenticated) {
+      const prices = variants
+        .map((v) => v.actualPrice)
+        .filter((p) => typeof p === "number");
+
+      const minPrice = prices.length ? Math.min(...prices) : null;
+      const maxPrice = prices.length ? Math.max(...prices) : null;
+
+      const priceRange =
+        minPrice && maxPrice
+          ? minPrice === maxPrice
+            ? `₹${minPrice.toFixed(2)}`
+            : `₹${minPrice.toFixed(2)} - ₹${maxPrice.toFixed(2)}`
+          : null;
+
+      return res.status(200).json({
+        success: true,
+        product: {
+          id: product._id,
+          productName: product.productName,
+        },
+        priceRange,
+        count: variants.length,
+        data: variants, // FULL DATA
+      });
+    }
+
+    /* -----------------------------------------
+       GUEST USER → LIMITED SAFE DATA
+    ------------------------------------------ */
+
     const formattedVariants = variants.map((variant) => {
-      const variantData = variant.toObject();
-      
-      if (!isAdmin) {
-        variantData.actualPrice = variantData.variantPrice;
-        variantData.variantPrice = null;
-      } else {
-        variantData.actualPrice = variantData.variantPrice;
-      }
-
-      return variantData;
+      return {
+        sku: variant.sku ?? null,
+        variantName: variant.variantName ?? null,
+        variantAttributes: variant.variantAttributes ?? null,
+        brand: variant.brand ?? null,
+        description: variant.description ?? null,
+        actualPrice: null, // 🔐 explicitly null
+        stockQty: variant.stockQty ?? null,
+      };
     });
 
-    res.status(200).json({
+    // 🔐 priceRange logic (BACKEND version of your useMemo)
+    const prices = variants
+      .map((v) => v.actualPrice)
+      .filter((p) => typeof p === "number");
+
+    const minPrice = prices.length ? Math.min(...prices) : null;
+    const maxPrice = prices.length ? Math.max(...prices) : null;
+
+    const priceRange =
+      minPrice && maxPrice
+        ? minPrice === maxPrice
+          ? `₹${minPrice.toFixed(2)}`
+          : `₹${minPrice.toFixed(2)} - ₹${maxPrice.toFixed(2)}`
+        : null;
+
+    return res.status(200).json({
       success: true,
       product: {
         id: product._id,
         productName: product.productName,
       },
+      priceRange, // ✅ allowed summary info
       count: formattedVariants.length,
       data: formattedVariants,
     });
@@ -174,14 +222,14 @@ exports.createProduct = async (req, res) => {
     if (!productName || productName.trim() === "") {
       return res.status(400).json({
         success: false,
-        message: "Product name is required"
+        message: "Product name is required",
       });
     }
 
     if (!categoryId) {
       return res.status(400).json({
         success: false,
-        message: "Category ID is required"
+        message: "Category ID is required",
       });
     }
 
@@ -197,13 +245,13 @@ exports.createProduct = async (req, res) => {
     // Check if product with same name exists in same category
     const existingProduct = await Product.findOne({
       productName: productName.trim(),
-      categoryId: categoryId
+      categoryId: categoryId,
     });
 
     if (existingProduct) {
       return res.status(409).json({
         success: false,
-        message: "Product with this name already exists in this category"
+        message: "Product with this name already exists in this category",
       });
     }
 
@@ -211,7 +259,7 @@ exports.createProduct = async (req, res) => {
       productName: productName.trim(),
       description: description || "",
       imageUrl: imageUrl || "",
-      categoryId: categoryId
+      categoryId: categoryId,
     });
 
     await product.save();
@@ -251,14 +299,15 @@ exports.updateProduct = async (req, res) => {
     if (updateData.productName) {
       const existingProduct = await Product.findOne({
         productName: updateData.productName.trim(),
-        categoryId: updateData.categoryId || (await Product.findById(id)).categoryId,
-        _id: { $ne: id }
+        categoryId:
+          updateData.categoryId || (await Product.findById(id)).categoryId,
+        _id: { $ne: id },
       });
 
       if (existingProduct) {
         return res.status(409).json({
           success: false,
-          message: "Product with this name already exists in this category"
+          message: "Product with this name already exists in this category",
         });
       }
     }
@@ -332,22 +381,22 @@ exports.filterProducts = async (req, res) => {
       brand,
       inStock,
       page = 1,
-      limit = 20
+      limit = 20,
     } = req.query;
 
     const skip = (page - 1) * limit;
 
     // Build product query
     const productQuery = {};
-    
+
     if (search) {
       productQuery.productName = { $regex: search, $options: "i" };
     }
 
     if (category) {
       // Find category by name
-      const categoryDoc = await Category.findOne({ 
-        name: { $regex: category, $options: "i" } 
+      const categoryDoc = await Category.findOne({
+        name: { $regex: category, $options: "i" },
       });
       if (categoryDoc) {
         productQuery.categoryId = categoryDoc._id;
@@ -375,7 +424,7 @@ exports.filterProducts = async (req, res) => {
       variantConditions.push({ brand: { $regex: brand, $options: "i" } });
     }
 
-    if (inStock === 'true') {
+    if (inStock === "true") {
       variantConditions.push({ stockQty: { $gt: 0 } });
     }
 
@@ -384,7 +433,7 @@ exports.filterProducts = async (req, res) => {
     }
 
     // Get product IDs for variant filtering
-    const productIds = products.map(p => p._id);
+    const productIds = products.map((p) => p._id);
     if (productIds.length > 0) {
       variantQuery.productId = { $in: productIds };
     }
@@ -394,7 +443,7 @@ exports.filterProducts = async (req, res) => {
 
     // Group variants by product
     const productMap = {};
-    variants.forEach(variant => {
+    variants.forEach((variant) => {
       if (!productMap[variant.productId]) {
         productMap[variant.productId] = [];
       }
@@ -403,10 +452,10 @@ exports.filterProducts = async (req, res) => {
 
     // Combine products with their variants
     const result = products
-      .filter(product => productMap[product._id]?.length > 0)
-      .map(product => ({
+      .filter((product) => productMap[product._id]?.length > 0)
+      .map((product) => ({
         ...product.toObject(),
-        variants: productMap[product._id]
+        variants: productMap[product._id],
       }));
 
     const total = await Product.countDocuments(productQuery);
@@ -417,16 +466,16 @@ exports.filterProducts = async (req, res) => {
         page: parseInt(page),
         limit: parseInt(limit),
         total,
-        totalPages: Math.ceil(total / limit)
+        totalPages: Math.ceil(total / limit),
       },
       count: result.length,
-      data: result
+      data: result,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: "Filter error",
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -444,7 +493,7 @@ exports.getProductsByCategory = async (req, res) => {
     if (!category) {
       return res.status(404).json({
         success: false,
-        message: "Category not found"
+        message: "Category not found",
       });
     }
 
@@ -454,7 +503,7 @@ exports.getProductsByCategory = async (req, res) => {
         .skip(skip)
         .limit(limit)
         .sort({ productName: 1 }),
-      Product.countDocuments({ categoryId })
+      Product.countDocuments({ categoryId }),
     ]);
 
     const totalPages = Math.ceil(total / limit);
@@ -463,7 +512,7 @@ exports.getProductsByCategory = async (req, res) => {
       success: true,
       category: {
         id: category._id,
-        name: category.name
+        name: category.name,
       },
       pagination: {
         page,
@@ -471,15 +520,15 @@ exports.getProductsByCategory = async (req, res) => {
         total,
         totalPages,
         hasNextPage: page < totalPages,
-        hasPrevPage: page > 1
+        hasPrevPage: page > 1,
       },
-      data: products
+      data: products,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: "Server error",
-      error: error.message
+      error: error.message,
     });
   }
 };

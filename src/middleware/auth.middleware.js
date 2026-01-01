@@ -32,5 +32,24 @@ const isAdmin = async (req, res, next) => {
   }
   next();
 };
+const optionalAuth = (req, res, next) => {
+  const authHeader = req.headers.authorization;
 
-module.exports = { auth, isAdmin };
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    req.user = null;
+    return next();
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded; // ✅ THIS IS THE KEY
+  } catch (err) {
+    req.user = null;
+  }
+
+  next();
+};
+
+module.exports = { auth, isAdmin, optionalAuth };

@@ -1,12 +1,12 @@
 const express = require("express");
 const router = express.Router();
-const { auth, isAdmin } = require("../middleware/auth.middleware");
+const { auth, isAdmin , optionalAuth} = require("../middleware/auth.middleware");
 const productController = require("../controllers/product.controller");
 
 // Public routes
-router.get("/", productController.getAllProducts);
-router.get("/:id", productController.getProductById);
-router.get("/:productId/variants", productController.getProductVariants);
+router.get("/",  optionalAuth, productController.getAllProducts);
+router.get("/:id",  optionalAuth,productController.getProductById);
+router.get("/:productId/variants",  optionalAuth,productController.getProductVariants);
 
 // Admin only routes
 router.post("/", auth, isAdmin, productController.createProduct);
