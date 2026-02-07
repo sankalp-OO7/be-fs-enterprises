@@ -48,10 +48,13 @@ exports.getCategoryById = async (req, res) => {
   }
 };
 
-// Create new category (Admin only)
+
+
+
+
 exports.createCategory = async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, description} = req.body;
 
     if (!name || name.trim() === "") {
       return res.status(400).json({
@@ -60,7 +63,6 @@ exports.createCategory = async (req, res) => {
       });
     }
 
-    // Check if category already exists
     const existingCategory = await Category.findOne({ 
       name: name.trim() 
     });
@@ -73,7 +75,8 @@ exports.createCategory = async (req, res) => {
     }
 
     const category = new Category({
-      name: name.trim()
+      name: name.trim(),
+      description: description.trim()
     });
 
     await category.save();
@@ -92,11 +95,10 @@ exports.createCategory = async (req, res) => {
   }
 };
 
-// Update category (Admin only)
 exports.updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name } = req.body;
+    const { name, description = "" } = req.body;
 
     if (!name || name.trim() === "") {
       return res.status(400).json({
@@ -105,7 +107,6 @@ exports.updateCategory = async (req, res) => {
       });
     }
 
-    // Check if name already exists for another category
     const existingCategory = await Category.findOne({ 
       name: name.trim(),
       _id: { $ne: id }
@@ -120,7 +121,10 @@ exports.updateCategory = async (req, res) => {
 
     const category = await Category.findByIdAndUpdate(
       id,
-      { name: name.trim() },
+      { 
+        name: name.trim(),
+        description: description.trim()
+      },
       { new: true, runValidators: true }
     );
 
@@ -144,6 +148,7 @@ exports.updateCategory = async (req, res) => {
     });
   }
 };
+
 
 // Delete category (Admin only)
 exports.deleteCategory = async (req, res) => {
