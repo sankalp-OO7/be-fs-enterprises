@@ -413,7 +413,7 @@ exports.bulkCreateVariants = async (req, res) => {
   }
 };
 
-// Filter variants with advanced options
+// Filter variants with advanced optionss
 exports.filterVariants = async (req, res) => {
   try {
     const isAdmin = req.user?.role === "admin";
@@ -581,3 +581,5 @@ exports.filterVariants = async (req, res) => {
     });
   }
 };
+
+

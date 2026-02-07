@@ -119,7 +119,7 @@ exports.getProductVariants = async (req, res) => {
     const isAuthenticated = !!req.user;
     console.log("isAuthenticated:", isAuthenticated, req.user);
     const product = await Product.findById(productId).select(
-      "productName categoryId"
+      "productName categoryId description imageUrl"
     );
 
     if (!product) {
@@ -150,12 +150,16 @@ exports.getProductVariants = async (req, res) => {
             ? `₹${minPrice.toFixed(2)}`
             : `₹${minPrice.toFixed(2)} - ₹${maxPrice.toFixed(2)}`
           : null;
-
+       console.log("Product balu:", product);
       return res.status(200).json({
         success: true,
         product: {
           id: product._id,
           productName: product.productName,
+          description: product.description,
+          imageUrl: product.imageUrl,
+          categoryName: product.categoryId?.name || null,
+        categoryId: product.categoryId?._id || null,
         },
         priceRange,
         count: variants.length,
@@ -193,12 +197,17 @@ exports.getProductVariants = async (req, res) => {
           ? `₹${minPrice.toFixed(2)}`
           : `₹${minPrice.toFixed(2)} - ₹${maxPrice.toFixed(2)}`
         : null;
+        console.log("Product balu:", product);
 
     return res.status(200).json({
       success: true,
       product: {
         id: product._id,
         productName: product.productName,
+        description: product.description,
+        imageUrl: product.imageUrl,
+        categoryName: product.categoryId?.name || null,
+        categoryId: product.categoryId?._id || null,
       },
       priceRange, // ✅ allowed summary info
       count: formattedVariants.length,
@@ -283,7 +292,7 @@ exports.updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
-
+    console.log("Update data:", updateData);
     // If categoryId is being updated, verify it exists
     if (updateData.categoryId) {
       const category = await Category.findById(updateData.categoryId);
@@ -299,6 +308,7 @@ exports.updateProduct = async (req, res) => {
     if (updateData.productName) {
       const existingProduct = await Product.findOne({
         productName: updateData.productName.trim(),
+        description: updateData.description || (await Product.findById(id)).description,
         categoryId:
           updateData.categoryId || (await Product.findById(id)).categoryId,
         _id: { $ne: id },
@@ -530,5 +540,236 @@ exports.getProductsByCategory = async (req, res) => {
       message: "Server error",
       error: error.message,
     });
+  }
+};
+
+
+// In your product controller (product.controller.js)
+
+/**
+ * @desc    Bulk update product and its variants
+ * @route   PUT /api/products/:id/bulk-update
+ * @access  Private/Admin
+ */
+exports.bulkUpdateProductWithVariants = async (req, res) => {
+  const session = await mongoose.startSession();
+  
+  try {
+    session.startTransaction();
+    const { id } = req.params;
+    const { product: productUpdates, variants: variantUpdates = [] } = req.body;
+
+    // 1. Validate product exists
+    const existingProduct = await Product.findById(id).session(session);
+    if (!existingProduct) {
+      await session.abortTransaction();
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    // 2. Process product updates
+    let updatedProduct = existingProduct;
+    
+    if (productUpdates && Object.keys(productUpdates).length > 0) {
+      // If categoryId is being updated, verify it exists
+      if (productUpdates.categoryId) {
+        const category = await Category.findById(productUpdates.categoryId).session(session);
+        if (!category) {
+          await session.abortTransaction();
+          return res.status(404).json({
+            success: false,
+            message: "Category not found",
+          });
+        }
+      }
+
+      // If productName is being updated, check for duplicates
+      if (productUpdates.productName) {
+        const existingProductWithSameName = await Product.findOne({
+          productName: productUpdates.productName.trim(),
+          categoryId: productUpdates.categoryId || existingProduct.categoryId,
+          _id: { $ne: id },
+        }).session(session);
+
+        if (existingProductWithSameName) {
+          await session.abortTransaction();
+          return res.status(409).json({
+            success: false,
+            message: "Product with this name already exists in this category",
+          });
+        }
+      }
+
+      // Apply product updates
+      Object.assign(existingProduct, productUpdates);
+      updatedProduct = await existingProduct.save({ session, new: true, runValidators: true });
+    }
+
+    // 3. Process variant updates (bulk operation)
+    let updatedVariants = [];
+    
+    if (variantUpdates.length > 0) {
+      // Prepare bulk operations
+      const bulkOps = [];
+      const variantNamesMap = new Map(); // For duplicate name checking
+      const variantIds = variantUpdates.map(v => v._id).filter(Boolean);
+
+      // Get existing variants for this product
+      const existingVariants = await Variant.find({ 
+        productId: id,
+        _id: { $in: variantIds }
+      }).session(session);
+
+      // Create a map for quick lookup
+      const existingVariantsMap = new Map(
+        existingVariants.map(v => [v._id.toString(), v])
+      );
+
+      // Process each variant update
+      for (const variantUpdate of variantUpdates) {
+        const { _id, ...updateData } = variantUpdate;
+
+        // Validate variant exists (if it has an _id)
+        if (_id && !existingVariantsMap.has(_id)) {
+          await session.abortTransaction();
+          return res.status(404).json({
+            success: false,
+            message: `Variant with ID ${_id} not found`,
+          });
+        }
+
+        // Handle variant name uniqueness check
+        if (updateData.variantName) {
+          const trimmedName = updateData.variantName.trim();
+          
+          // Check for duplicates within the same update batch
+          if (variantNamesMap.has(trimmedName) && variantNamesMap.get(trimmedName) !== _id) {
+            await session.abortTransaction();
+            return res.status(409).json({
+              success: false,
+              message: `Duplicate variant name found: "${trimmedName}"`,
+            });
+          }
+          variantNamesMap.set(trimmedName, _id);
+
+          // Check for duplicates in database (excluding this variant)
+          const existingVariantWithSameName = await Variant.findOne({
+            variantName: trimmedName,
+            productId: id,
+            _id: { $ne: _id }
+          }).session(session);
+
+          if (existingVariantWithSameName) {
+            await session.abortTransaction();
+            return res.status(409).json({
+              success: false,
+              message: `Variant with name "${trimmedName}" already exists for this product`,
+            });
+          }
+        }
+
+        // Auto-update actualPrice when variantPrice changes
+        if (updateData.variantPrice !== undefined) {
+          updateData.actualPrice = updateData.variantPrice;
+        }
+
+        // Handle image inheritance - if variant doesn't have custom image, use product image
+        if (!updateData.hasCustomImage && productUpdates?.imageUrl) {
+          updateData.imageUrl = productUpdates.imageUrl;
+        }
+
+        // Prepare bulk operation
+        if (_id) {
+          // Update existing variant
+          bulkOps.push({
+            updateOne: {
+              filter: { _id: mongoose.Types.ObjectId(_id), productId: id },
+              update: { $set: updateData },
+              upsert: false,
+            }
+          });
+        } else {
+          // Create new variant (if needed)
+          bulkOps.push({
+            insertOne: {
+              document: {
+                ...updateData,
+                productId: id,
+                createdAt: new Date(),
+                updatedAt: new Date()
+              }
+            }
+          });
+        }
+      }
+
+      // Execute bulk operations if there are any
+      if (bulkOps.length > 0) {
+        const bulkResult = await Variant.bulkWrite(bulkOps, { session });
+        
+        // Get updated variants data
+        updatedVariants = await Variant.find({ 
+          productId: id 
+        }).session(session);
+      } else {
+        updatedVariants = existingVariants;
+      }
+    }
+
+    // 4. Commit transaction
+    await session.commitTransaction();
+    
+    // 5. Populate and return response
+    const populatedProduct = await Product.findById(id)
+      .populate("categoryId", "name")
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      message: `Product and ${variantUpdates.length} variants updated successfully`,
+      data: {
+        product: populatedProduct,
+        variants: updatedVariants,
+        stats: {
+          productUpdated: !!productUpdates,
+          variantsUpdated: variantUpdates.length,
+          variantsTotal: updatedVariants.length
+        }
+      },
+    });
+
+  } catch (error) {
+    // Rollback on error
+    await session.abortTransaction();
+    
+    console.error('Bulk update error:', error);
+    
+    // Handle specific errors
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: "Validation Error",
+        error: error.message,
+        errors: Object.values(error.errors).map(err => err.message)
+      });
+    }
+    
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "Duplicate key error",
+        error: error.message,
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Error in bulk update",
+      error: error.message,
+    });
+  } finally {
+    session.endSession();
   }
 };

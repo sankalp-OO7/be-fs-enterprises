@@ -79,7 +79,7 @@ router.get("/", (req, res) => {
         update: "PUT /api/orders/:id"
       },
       upload: {
-        single: "POST /api/upload/single",
+        single: "POST /api/uploads/upload",
         multiple: "POST /api/upload/multiple"
       },
       system: {

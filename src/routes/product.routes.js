@@ -11,6 +11,7 @@ router.get("/:productId/variants",  optionalAuth,productController.getProductVar
 // Admin only routes
 router.post("/", auth, isAdmin, productController.createProduct);
 router.put("/:id", auth, isAdmin, productController.updateProduct);
+router.put('/:id/bulk-update', productController.bulkUpdateProductWithVariants);
 router.delete("/:id", auth, isAdmin, productController.deleteProduct);
 
 // Search and filter routes
