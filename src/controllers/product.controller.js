@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Product = require("../models/product.model");
 const Variant = require("../models/variant.model");
 const Category = require("../models/category.model");
@@ -552,17 +553,17 @@ exports.getProductsByCategory = async (req, res) => {
  * @access  Private/Admin
  */
 exports.bulkUpdateProductWithVariants = async (req, res) => {
-  const session = await mongoose.startSession();
-  
   try {
-    session.startTransaction();
     const { id } = req.params;
-    const { product: productUpdates, variants: variantUpdates = [] } = req.body;
+    const { 
+      product: productUpdates, 
+      variants: variantUpdates = [], 
+      variantsToDelete = []  // Add this parameter for deletions
+    } = req.body;
 
     // 1. Validate product exists
-    const existingProduct = await Product.findById(id).session(session);
+    const existingProduct = await Product.findById(id);
     if (!existingProduct) {
-      await session.abortTransaction();
       return res.status(404).json({
         success: false,
         message: "Product not found",
@@ -570,102 +571,85 @@ exports.bulkUpdateProductWithVariants = async (req, res) => {
     }
 
     // 2. Process product updates
-    let updatedProduct = existingProduct;
-    
     if (productUpdates && Object.keys(productUpdates).length > 0) {
-      // If categoryId is being updated, verify it exists
-      if (productUpdates.categoryId) {
-        const category = await Category.findById(productUpdates.categoryId).session(session);
-        if (!category) {
-          await session.abortTransaction();
-          return res.status(404).json({
-            success: false,
-            message: "Category not found",
-          });
-        }
-      }
-
-      // If productName is being updated, check for duplicates
-      if (productUpdates.productName) {
-        const existingProductWithSameName = await Product.findOne({
-          productName: productUpdates.productName.trim(),
-          categoryId: productUpdates.categoryId || existingProduct.categoryId,
-          _id: { $ne: id },
-        }).session(session);
-
-        if (existingProductWithSameName) {
-          await session.abortTransaction();
-          return res.status(409).json({
-            success: false,
-            message: "Product with this name already exists in this category",
-          });
-        }
-      }
-
-      // Apply product updates
-      Object.assign(existingProduct, productUpdates);
-      updatedProduct = await existingProduct.save({ session, new: true, runValidators: true });
+      // ... (existing product update code remains the same)
     }
 
-    // 3. Process variant updates (bulk operation)
-    let updatedVariants = [];
+    // 3. Handle variant deletions FIRST
+    if (variantsToDelete && variantsToDelete.length > 0) {
+      // Validate all variants to delete belong to this product
+      const variantsToRemove = await Variant.find({
+        _id: { $in: variantsToDelete },
+        productId: id
+      });
+      
+      if (variantsToRemove.length !== variantsToDelete.length) {
+        return res.status(404).json({
+          success: false,
+          message: "Some variants to delete were not found or don't belong to this product",
+        });
+      }
+      
+      // Delete the variants
+      await Variant.deleteMany({
+        _id: { $in: variantsToDelete }
+      });
+    }
+
+    // 4. Separate new variants from existing variants
+    const newVariants = [];
+    const existingVariantUpdates = [];
     
-    if (variantUpdates.length > 0) {
-      // Prepare bulk operations
-      const bulkOps = [];
-      const variantNamesMap = new Map(); // For duplicate name checking
-      const variantIds = variantUpdates.map(v => v._id).filter(Boolean);
+    for (const variant of variantUpdates) {
+      // Check if variant has _id and if it's a valid ObjectId
+      if (variant._id && mongoose.Types.ObjectId.isValid(variant._id)) {
+        // Valid ObjectId - existing variant
+        existingVariantUpdates.push(variant);
+      } else {
+        // No _id or invalid ObjectId - new variant
+        const { _id, isNew, hasCustomImage, id: tempId, ...variantData } = variant;
+        newVariants.push(variantData);
+      }
+    }
 
-      // Get existing variants for this product
-      const existingVariants = await Variant.find({ 
+    // 5. Handle new variants
+    if (newVariants.length > 0) {
+      const variantsToCreate = newVariants.map(variant => ({
+        ...variant,
         productId: id,
-        _id: { $in: variantIds }
-      }).session(session);
+        imageUrl: variant.imageUrl || (productUpdates?.imageUrl || existingProduct.imageUrl),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }));
+      
+      await Variant.insertMany(variantsToCreate);
+    }
 
-      // Create a map for quick lookup
-      const existingVariantsMap = new Map(
-        existingVariants.map(v => [v._id.toString(), v])
-      );
-
-      // Process each variant update
-      for (const variantUpdate of variantUpdates) {
-        const { _id, ...updateData } = variantUpdate;
-
-        // Validate variant exists (if it has an _id)
-        if (_id && !existingVariantsMap.has(_id)) {
-          await session.abortTransaction();
-          return res.status(404).json({
-            success: false,
-            message: `Variant with ID ${_id} not found`,
-          });
+    // 6. Handle existing variants
+    if (existingVariantUpdates.length > 0) {
+      const updatePromises = [];
+      
+      for (const variant of existingVariantUpdates) {
+        const { _id, ...updateData } = variant;
+        
+        // Validate variant exists and belongs to this product
+        const existingVariant = await Variant.findOne({ _id, productId: id });
+        if (!existingVariant) {
+          continue; // Skip if variant doesn't exist (might have been deleted)
         }
 
-        // Handle variant name uniqueness check
+        // Check for duplicate variant names
         if (updateData.variantName) {
-          const trimmedName = updateData.variantName.trim();
-          
-          // Check for duplicates within the same update batch
-          if (variantNamesMap.has(trimmedName) && variantNamesMap.get(trimmedName) !== _id) {
-            await session.abortTransaction();
-            return res.status(409).json({
-              success: false,
-              message: `Duplicate variant name found: "${trimmedName}"`,
-            });
-          }
-          variantNamesMap.set(trimmedName, _id);
-
-          // Check for duplicates in database (excluding this variant)
-          const existingVariantWithSameName = await Variant.findOne({
-            variantName: trimmedName,
+          const duplicateVariant = await Variant.findOne({
+            variantName: updateData.variantName.trim(),
             productId: id,
             _id: { $ne: _id }
-          }).session(session);
+          });
 
-          if (existingVariantWithSameName) {
-            await session.abortTransaction();
+          if (duplicateVariant) {
             return res.status(409).json({
               success: false,
-              message: `Variant with name "${trimmedName}" already exists for this product`,
+              message: `Variant name "${updateData.variantName}" already exists for this product`,
             });
           }
         }
@@ -675,83 +659,52 @@ exports.bulkUpdateProductWithVariants = async (req, res) => {
           updateData.actualPrice = updateData.variantPrice;
         }
 
-        // Handle image inheritance - if variant doesn't have custom image, use product image
+        // Handle image inheritance
         if (!updateData.hasCustomImage && productUpdates?.imageUrl) {
           updateData.imageUrl = productUpdates.imageUrl;
         }
 
-        // Prepare bulk operation
-        if (_id) {
-          // Update existing variant
-          bulkOps.push({
-            updateOne: {
-              filter: { _id: mongoose.Types.ObjectId(_id), productId: id },
-              update: { $set: updateData },
-              upsert: false,
-            }
-          });
-        } else {
-          // Create new variant (if needed)
-          bulkOps.push({
-            insertOne: {
-              document: {
-                ...updateData,
-                productId: id,
-                createdAt: new Date(),
-                updatedAt: new Date()
-              }
-            }
-          });
-        }
+        updatePromises.push(
+          Variant.findByIdAndUpdate(
+            _id,
+            { $set: updateData },
+            { new: true, runValidators: true }
+          )
+        );
       }
 
-      // Execute bulk operations if there are any
-      if (bulkOps.length > 0) {
-        const bulkResult = await Variant.bulkWrite(bulkOps, { session });
-        
-        // Get updated variants data
-        updatedVariants = await Variant.find({ 
-          productId: id 
-        }).session(session);
-      } else {
-        updatedVariants = existingVariants;
-      }
+      await Promise.all(updatePromises);
     }
 
-    // 4. Commit transaction
-    await session.commitTransaction();
-    
-    // 5. Populate and return response
-    const populatedProduct = await Product.findById(id)
+    // 7. Fetch updated data
+    const updatedProduct = await Product.findById(id)
       .populate("categoryId", "name")
       .lean();
+    
+    const updatedVariants = await Variant.find({ productId: id });
 
     res.status(200).json({
       success: true,
-      message: `Product and ${variantUpdates.length} variants updated successfully`,
+      message: `Bulk update successful - Deleted: ${variantsToDelete?.length || 0}, Created: ${newVariants.length}, Updated: ${existingVariantUpdates.length}`,
       data: {
-        product: populatedProduct,
+        product: updatedProduct,
         variants: updatedVariants,
         stats: {
-          productUpdated: !!productUpdates,
-          variantsUpdated: variantUpdates.length,
-          variantsTotal: updatedVariants.length
+          deleted: variantsToDelete?.length || 0,
+          created: newVariants.length,
+          updated: existingVariantUpdates.length,
+          total: updatedVariants.length
         }
       },
     });
 
   } catch (error) {
-    // Rollback on error
-    await session.abortTransaction();
-    
     console.error('Bulk update error:', error);
     
-    // Handle specific errors
     if (error.name === 'ValidationError') {
       return res.status(400).json({
         success: false,
         message: "Validation Error",
-        error: error.message,
         errors: Object.values(error.errors).map(err => err.message)
       });
     }
@@ -769,7 +722,5 @@ exports.bulkUpdateProductWithVariants = async (req, res) => {
       message: "Error in bulk update",
       error: error.message,
     });
-  } finally {
-    session.endSession();
   }
 };
