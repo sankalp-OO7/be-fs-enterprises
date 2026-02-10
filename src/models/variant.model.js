@@ -6,120 +6,48 @@ const variantSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Product",
       required: true,
-      index: true
+      index: true,
     },
-    variantName: { 
-      type: String, 
-      required: true, 
-      trim: true 
+    variantName: {
+      type: String,
+      required: true,
+      trim: true,
     },
-    brand: { 
-      type: String, 
-      required: true, 
-      trim: true 
+    variantDescription: {
+      type: String,
+      trim: true,
     },
-    variantPrice: { 
-      type: Number, 
-      required: true 
+    brand: {
+      type: String,
+      required: false,
+      default: "Others",
+      trim: true,
     },
-    actualPrice: { 
-      type: Number, 
-      required: true 
+    invoicePrice: {
+      type: Number,
+      required: true,
     },
-    stockQty: { 
-      type: Number, 
-      required: true, 
-      default: 0 
+    estimatePrice: {
+      type: Number,
+      required: true,
     },
-    imageUrl: { 
-      type: String, 
-      required: true 
+    stockQty: {
+      type: Number,
+      required: true,
+      default: 0,
     },
-
-    // Excel-based fields (keeping original names)
-    itemCode: { 
-      type: Number 
+    gst:{
+      type: Number,
+      required: false,
+      default: 0,
     },
-    spNo: { 
-      type: Number 
+    imageUrl: {
+      type: String,
+      required: true,
     },
-    uom: { 
-      type: String, 
-      trim: true 
-    },
-    defUom: { 
-      type: String, 
-      trim: true 
-    },
-    itemOnFlag: { 
-      type: Boolean, 
-      default: false 
-    },
-    rackNo: { 
-      type: String, 
-      trim: true 
-    },
-    opStock: { 
-      type: Number, 
-      default: 0 
-    },
-    hsnCode: { 
-      type: Number 
-    },
-    gst: { 
-      type: Number 
-    },
-    stockItem: { 
-      type: String, 
-      trim: true 
-    },
-    itemDisc: { 
-      type: String, 
-      trim: true 
-    },
-    mrp: { 
-      type: Number, 
-      default: 0 
-    },
-    purRate: { 
-      type: Number, 
-      default: 0 
-    },
-    invoiceRate: { 
-      type: Number, 
-      default: 0 
-    },
-    cashMemoRate: { 
-      type: Number, 
-      default: 0 
-    },
-    estimateRate: { 
-      type: Number, 
-      default: 0 
-    },
-    cashSalesRate: { 
-      type: Number, 
-      default: 0 
-    },
-    agRate: { 
-      type: Number, 
-      default: 0 
-    },
-    invDisc: { 
-      type: Number, 
-      default: 0 
-    },
-    cashMemoDisc: { 
-      type: Number, 
-      default: 0 
-    },
-    estimateDisc: { 
-      type: Number, 
-      default: 0 
-    },
-    agDisc: { 
-      type: Number, 
-      default: 0 
+    itemCode: {
+      type: Number,
+      unique: true,
     },
     createdAt: {
       type: Date,
@@ -130,7 +58,7 @@ const variantSchema = new mongoose.Schema(
       default: Date.now,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Indexes for better query performance

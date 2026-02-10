@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const Product = require("../models/product.model");
 const Variant = require("../models/variant.model");
 const Category = require("../models/category.model");
-
+const XLSX = require("xlsx");
 /**
  * Bulk import products and variants from Excel/JSON format
  * Expected data format:
@@ -581,4 +581,136 @@ function calculateSuccessRate(results) {
   if (totalAttempted === 0) return 0;
   
   return Math.round((totalOperations / totalAttempted) * 100);
+}
+
+
+exports.importProductsFromExcel = async (req, res) => {
+  try {
+    // File is already validated by multer middleware
+    // req.file contains the uploaded file buffer
+    
+    if (!req.file || !req.file.buffer) {
+      return res.status(400).json({
+        success: false,
+        message: "No file uploaded or file is empty"
+      });
+    }
+
+    // Process Excel from memory buffer
+    const importResult = await processExcelFromBuffer(req.file.buffer);
+    
+    res.status(200).json({
+      success: true,
+      message: "Excel import completed successfully",
+      data: importResult
+    });
+    
+  } catch (error) {
+    console.error("Excel import error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to import from Excel",
+      error: error.message
+    });
+  }
+};
+
+async function processExcelFromBuffer(buffer) {
+  const workbook = XLSX.read(buffer, { type: 'buffer' });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(sheet);
+
+  const errors = [];
+  const bulkOps = [];
+
+  // Ensure Others category exists
+  let generalCategory = await Category.findOne({ name: "Others" });
+  if (!generalCategory) {
+    generalCategory = await Category.create({ name: "Others" });
+  }
+
+  // Get last itemCode
+  const lastVariant = await Variant.findOne().sort({ itemCode: -1 });
+  let nextItemCode = lastVariant?.itemCode || 1000;
+
+  for (const row of rows) {
+    try {
+      if (!row.productName || !row.variantName) {
+        errors.push({ reason: "Missing productName or variantName", row });
+        continue;
+      }
+
+      // CATEGORY
+      let categoryName = row.categoryName?.trim() || "General";
+
+      let category = await Category.findOne({ name: categoryName });
+      if (!category) {
+        category = await Category.create({ name: categoryName });
+      }
+
+      // PRODUCT
+      let product = await Product.findOne({
+        productName: row.productName,
+        categoryId: category._id
+      });
+
+      if (!product) {
+        product = await Product.create({
+          productName: row.productName,
+          description: row.prodDescription || "",
+          imageUrl: row.productImageUrl || "",
+          categoryId: category._id
+        });
+      }
+
+      // ITEM CODE
+      let itemCode = row.itemCode;
+      if (!itemCode) {
+        itemCode = nextItemCode++;
+      }
+
+      const imageUrl =
+        row.variantImageUrl ||
+        row.productImageUrl ||
+        "";
+
+      bulkOps.push({
+        updateOne: {
+          filter: { itemCode },
+          update: {
+            $set: {
+              productId: product._id,
+              variantName: row.variantName,
+              variantDescription: row.variantDescription || "",
+              brand: row.brand || "Others",
+              invoicePrice: row.invoicePrice,
+              estimatePrice: row.estimatePrice,
+              stockQty: row.stockQty,
+              imageUrl,
+              gst: row.gst || 0,
+              itemCode
+            }
+          },
+          upsert: true
+        }
+      });
+
+    } catch (err) {
+      errors.push({
+        product: row.productName,
+        error: err.message
+      });
+    }
+  }
+
+  if (bulkOps.length > 0) {
+    await Variant.bulkWrite(bulkOps);
+  }
+
+  return {
+    totalRows: rows.length,
+    processed: bulkOps.length,
+    skipped: errors.length,
+    errors: errors.slice(0, 20) // Limit error response size
+  };
 }
