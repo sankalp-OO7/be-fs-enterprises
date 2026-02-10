@@ -3,35 +3,9 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/user.model.js");
 const dotenv = require("dotenv");
 
-// Hardcoded admin credentials
-const ADMIN_EMAIL = "admin@hardware.com";
-const ADMIN_PASSWORD = "admin123";
-const ADMIN_USERNAME = "1";
+
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
-// Function to ensure admin exists
-const ensureAdminExists = async () => {
-  try {
-    let admin = await User.findOne({ email: ADMIN_EMAIL });
-
-    if (!admin) {
-      const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 10);
-      admin = new User({
-        username: ADMIN_USERNAME,
-        email: ADMIN_EMAIL,
-        password: hashedPassword,
-        role: "admin",
-      });
-      await admin.save();
-      console.log("Admin user created successfully");
-    }
-  } catch (error) {
-    console.error("Error ensuring admin exists:", error);
-  }
-};
-
-// Call this function when the server starts
-ensureAdminExists();
 
 exports.registerUser = async (username, email, password) => {
   // Check if user already exists
