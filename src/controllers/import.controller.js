@@ -618,7 +618,14 @@ exports.importProductsFromExcel = async (req, res) => {
 async function processExcelFromBuffer(buffer) {
   const workbook = XLSX.read(buffer, { type: 'buffer' });
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json(sheet);
+    const rows = XLSX.utils.sheet_to_json(sheet).map(row => 
+    Object.fromEntries(
+      Object.entries(row).map(([key, value]) => [
+        key.trim(), // Trim the key to remove spaces
+        typeof value === "string" ? value.trim() : value
+      ])
+    )
+  );
 
   const errors = [];
   const bulkOps = [];
@@ -633,7 +640,13 @@ async function processExcelFromBuffer(buffer) {
   const lastVariant = await Variant.findOne().sort({ itemCode: -1 });
   let nextItemCode = lastVariant?.itemCode || 1000;
 
-  for (const row of rows) {
+  for (let row of rows) {
+    row = Object.fromEntries(
+      Object.entries(row).map(([key, value]) => [
+        key,
+        typeof value === "string" ? value.trim() : value
+      ])
+    );
     try {
       if (!row.productName || !row.variantName) {
         errors.push({ reason: "Missing productName or variantName", row });
@@ -673,7 +686,6 @@ async function processExcelFromBuffer(buffer) {
         row.variantImageUrl ||
         row.productImageUrl ||
         "";
-
       bulkOps.push({
         updateOne: {
           filter: { itemCode },
