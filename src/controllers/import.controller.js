@@ -50,7 +50,7 @@ exports.bulkImportProducts = async (req, res) => {
       errors: []
     };
 
-    console.log(`🔄 Starting import of ${productsData.length} product records...`);
+
 
     // Process each product record
     for (const productRecord of productsData) {
@@ -112,7 +112,7 @@ exports.bulkImportProducts = async (req, res) => {
             
             if (categoryDoc.$isNew) {
               importResults.summary.categories.created++;
-              console.log(`📁 Created new category: ${categoryName}`);
+ 
             } else {
               importResults.summary.categories.existing++;
             }
@@ -140,7 +140,7 @@ exports.bulkImportProducts = async (req, res) => {
             existingProduct.imageUrl = imageUrl || existingProduct.imageUrl;
             productDoc = await existingProduct.save();
             importResults.summary.products.updated++;
-            console.log(`🔄 Updated existing product: ${productDoc.productName}`);
+
           } else {
             // CREATE NEW PRODUCT
             productDoc = new Product({
@@ -151,7 +151,7 @@ exports.bulkImportProducts = async (req, res) => {
             });
             await productDoc.save();
             importResults.summary.products.created++;
-            console.log(`✅ Created new product: ${productDoc.productName} in category: ${categoryDoc.name}`);
+
           }
         } catch (productError) {
           importResults.errors.push(`Product "${productName}": ${productError.message}`);
@@ -159,8 +159,7 @@ exports.bulkImportProducts = async (req, res) => {
           continue;
         }
 
-        // STEP 3: PROCESS VARIANTS FOR THIS PRODUCT
-        console.log(`   Processing ${variants.length} variants for ${productDoc.productName}...`);
+   
         
         let variantResults = {
           created: 0,
@@ -262,7 +261,7 @@ exports.bulkImportProducts = async (req, res) => {
 
               await existingVariant.save();
               variantResults.updated++;
-              console.log(`     ↳ Updated variant: ${normalizedVariantName} (₹${price})`);
+        
             } else {
               // CREATE NEW VARIANT
               const newVariant = new Variant({
@@ -301,14 +300,14 @@ exports.bulkImportProducts = async (req, res) => {
 
               await newVariant.save();
               variantResults.created++;
-              console.log(`     ↳ Created variant: ${normalizedVariantName} (₹${price})`);
+           
             }
 
           } catch (variantError) {
             const errorMsg = `Product "${productDoc.productName}", Variant error: ${variantError.message}`;
             importResults.errors.push(errorMsg);
             variantResults.skipped++;
-            console.log(`     ❌ Error: ${variantError.message}`);
+    
           }
         }
 
@@ -317,7 +316,6 @@ exports.bulkImportProducts = async (req, res) => {
         importResults.summary.variants.updated += variantResults.updated;
         importResults.summary.variants.skipped += variantResults.skipped;
 
-        console.log(`   ✓ Variants summary: ${variantResults.created} created, ${variantResults.updated} updated, ${variantResults.skipped} skipped`);
 
       } catch (recordError) {
         importResults.errors.push(`Record ${importResults.totalRecordsProcessed}: ${recordError.message}`);
@@ -348,15 +346,11 @@ exports.bulkImportProducts = async (req, res) => {
       }
     }
 
-    console.log(`🎉 Import completed! Summary:`);
-    console.log(`   Products: ${importResults.summary.products.created} created, ${importResults.summary.products.updated} updated`);
-    console.log(`   Variants: ${importResults.summary.variants.created} created, ${importResults.summary.variants.updated} updated`);
-    console.log(`   Errors: ${importResults.errors.length}`);
+  
 
     res.status(200).json(response);
 
   } catch (error) {
-    console.error("❌ Import failed:", error);
     res.status(500).json({
       success: false,
       message: "Import process failed",

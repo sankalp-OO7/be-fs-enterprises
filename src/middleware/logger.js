@@ -1,5 +1,5 @@
 const requestLogger = (req, res, next) => {
-  console.log('🌐 Incoming Request:', {
+  console.log('Incoming Request:', {
     method: req.method,
     url: req.originalUrl,
     origin: req.headers.origin || 'no-origin',

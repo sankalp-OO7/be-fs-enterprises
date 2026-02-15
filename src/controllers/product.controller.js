@@ -118,7 +118,6 @@ exports.getProductVariants = async (req, res) => {
     const { productId } = req.params;
 
     const isAuthenticated = !!req.user;
-    console.log("isAuthenticated:", isAuthenticated, req.user);
     const product = await Product.findById(productId).select(
       "productName categoryId description imageUrl"
     );
@@ -151,7 +150,6 @@ exports.getProductVariants = async (req, res) => {
             ? `₹${minPrice.toFixed(2)}`
             : `₹${minPrice.toFixed(2)} - ₹${maxPrice.toFixed(2)}`
           : null;
-       console.log("Product balu:", product);
       return res.status(200).json({
         success: true,
         product: {
@@ -198,7 +196,6 @@ exports.getProductVariants = async (req, res) => {
           ? `₹${minPrice.toFixed(2)}`
           : `₹${minPrice.toFixed(2)} - ₹${maxPrice.toFixed(2)}`
         : null;
-        console.log("Product balu:", product);
 
     return res.status(200).json({
       success: true,
@@ -293,7 +290,6 @@ exports.updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
-    console.log("Update data:", updateData);
     // If categoryId is being updated, verify it exists
     if (updateData.categoryId) {
       const category = await Category.findById(updateData.categoryId);

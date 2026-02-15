@@ -24,7 +24,6 @@ const {
 
 // Single image upload (base64/data URI)
 router.post('/upload', async (req, res) => {
-  console.log("📥 Base64 upload request received");
   
   try {
     const { image, folder = 'hardware-shop' } = req.body;
@@ -36,19 +35,16 @@ router.post('/upload', async (req, res) => {
       });
     }
 
-    console.log(`Processing base64 image, length: ${image.length}`);
     
     const result = await uploadImage(image, folder);
     
     if (result.success) {
-      console.log('✅ Base64 upload successful');
       res.json({
         success: true,
         message: 'Image uploaded successfully',
         data: result
       });
     } else {
-      console.error('❌ Base64 upload failed:', result.error);
       res.status(500).json({
         success: false,
         message: 'Failed to upload image',
@@ -57,7 +53,6 @@ router.post('/upload', async (req, res) => {
     }
     
   } catch (error) {
-    console.error('❌ Upload route error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error during upload',
@@ -68,7 +63,6 @@ router.post('/upload', async (req, res) => {
 
 // Multiple images upload (base64/data URI)
 router.post('/upload-multiple', async (req, res) => {
-  console.log("📥 Multiple base64 upload request received");
   
   try {
     const { images, folder = 'hardware-shop' } = req.body;
@@ -80,7 +74,6 @@ router.post('/upload-multiple', async (req, res) => {
       });
     }
 
-    console.log(`Processing ${images.length} base64 images`);
     
     const result = await uploadMultipleImages(images, folder);
     
@@ -91,7 +84,6 @@ router.post('/upload-multiple', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Multiple upload route error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error during multiple upload',
@@ -104,24 +96,20 @@ router.post('/upload-multiple', async (req, res) => {
 
 // Single image direct upload (file)
 router.post('/upload-direct', uploadSingle, async (req, res) => {
-  console.log("📥 Direct file upload request received");
   
   try {
     const { folder = 'hardware-shop' } = req.body;
     
-    console.log(`Uploading to folder: ${folder}`);
     
     const result = await uploadImageMulter(req, folder);
     
     if (result.success) {
-      console.log('✅ Direct upload successful:', result.public_id);
       res.json({
         success: true,
         message: 'Image uploaded successfully',
         data: result
       });
     } else {
-      console.error('❌ Direct upload failed:', result.error);
       res.status(400).json({
         success: false,
         message: result.message || 'Failed to upload image',
@@ -130,7 +118,6 @@ router.post('/upload-direct', uploadSingle, async (req, res) => {
     }
     
   } catch (error) {
-    console.error('❌ Direct upload route error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error during upload',
@@ -141,12 +128,10 @@ router.post('/upload-direct', uploadSingle, async (req, res) => {
 
 // Multiple images direct upload (files)
 router.post('/upload-multiple-direct', uploadMultiple, async (req, res) => {
-  console.log("📥 Multiple file upload request received");
   
   try {
     const { folder = 'hardware-shop' } = req.body;
     
-    console.log(`Uploading ${req.files ? req.files.length : 0} files to folder: ${folder}`);
     
     const result = await uploadMultipleImagesMulter(req, folder);
     
@@ -159,7 +144,6 @@ router.post('/upload-multiple-direct', uploadMultiple, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Multiple file upload route error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error during upload',
@@ -170,7 +154,6 @@ router.post('/upload-multiple-direct', uploadMultiple, async (req, res) => {
 
 // Upload with multiple fields (e.g., main image + gallery)
 router.post('/upload-fields', uploadFields, async (req, res) => {
-  console.log("📥 Multiple fields upload request received");
   
   try {
     const { folder = 'hardware-shop' } = req.body;
@@ -196,7 +179,6 @@ router.post('/upload-fields', uploadFields, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Fields upload route error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error during upload',
@@ -209,7 +191,6 @@ router.post('/upload-fields', uploadFields, async (req, res) => {
 
 // Delete image
 router.delete('/delete', async (req, res) => {
-  console.log("🗑️ Delete image request received");
   
   try {
     const { publicId } = req.body;
@@ -221,18 +202,15 @@ router.delete('/delete', async (req, res) => {
       });
     }
 
-    console.log(`Deleting image: ${publicId}`);
     
     const result = await deleteImage(publicId);
     
     if (result.success) {
-      console.log('✅ Image deleted successfully');
       res.json({
         success: true,
         message: 'Image deleted successfully'
       });
     } else {
-      console.error('❌ Delete failed:', result.error);
       res.status(500).json({
         success: false,
         message: 'Failed to delete image',
@@ -241,7 +219,6 @@ router.delete('/delete', async (req, res) => {
     }
     
   } catch (error) {
-    console.error('❌ Delete route error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error during deletion',
@@ -252,7 +229,6 @@ router.delete('/delete', async (req, res) => {
 
 // Generate image URL with transformations
 router.post('/generate-url', async (req, res) => {
-  console.log("🔗 Generate URL request received");
   
   try {
     const { publicId, transformations = {} } = req.body;
@@ -264,7 +240,6 @@ router.post('/generate-url', async (req, res) => {
       });
     }
 
-    console.log(`Generating URL for: ${publicId} with transformations:`, transformations);
     
     const url = generateImageUrl(publicId, transformations);
     
@@ -282,7 +257,6 @@ router.post('/generate-url', async (req, res) => {
     }
     
   } catch (error) {
-    console.error('❌ Generate URL route error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error during URL generation',
@@ -293,7 +267,6 @@ router.post('/generate-url', async (req, res) => {
 
 // Get image information
 router.get('/info/:publicId', async (req, res) => {
-  console.log("ℹ️ Get image info request received");
   
   try {
     const { publicId } = req.params;
@@ -305,7 +278,6 @@ router.get('/info/:publicId', async (req, res) => {
       });
     }
 
-    console.log(`Getting info for: ${publicId}`);
     
     const result = await getImageInfo(publicId);
     
@@ -324,7 +296,6 @@ router.get('/info/:publicId', async (req, res) => {
     }
     
   } catch (error) {
-    console.error('❌ Get info route error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error retrieving image information',
@@ -401,7 +372,7 @@ router.use((error, req, res, next) => {
   }
   
   // Other errors
-  console.error('❌ Upload route error:', error);
+  console.error(' Upload route error:', error);
   res.status(500).json({
     success: false,
     message: 'Internal server error',

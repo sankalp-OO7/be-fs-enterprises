@@ -5,7 +5,7 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || "https://fsinterprises.ve
   .map(o => o.trim())
   .filter(origin => origin.length > 0);
 
-console.log("🛡️ CORS Allowed Origins:", allowedOrigins);
+console.log(" CORS Allowed Origins:", allowedOrigins);
 
 // SIMPLIFIED CORS CONFIGURATION
 const corsOptions = {

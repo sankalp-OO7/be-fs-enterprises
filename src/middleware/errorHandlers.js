@@ -1,7 +1,7 @@
 const corsConfig = require("../config/cors");
 
 const errorHandler = (err, req, res, next) => {
-  console.error("💥 Error:", err.stack);
+  console.error(" Error:", err.stack);
   
   corsConfig.errorHandler(err, req, res, next);
   

@@ -48,14 +48,14 @@ const startLocalServer = async () => {
   try {
     await connectDatabase();
     app.listen(PORT, () => {
-      console.log(`🚀 Server running locally on port ${PORT}`);
-      console.log(`📝 Environment: ${process.env.NODE_ENV || "development"}`);
-      console.log(`🛡️ CORS Allowed Origins: ${allowedOrigins.join(", ")}`);
-      console.log(`🌐 Health check: http://localhost:${PORT}/health`);
-      console.log(`🔍 API Base: http://localhost:${PORT}/api`);
+      console.log(` Server running locally on port ${PORT}`);
+      console.log(` Environment: ${process.env.NODE_ENV || "development"}`);
+      console.log(` CORS Allowed Origins: ${allowedOrigins.join(", ")}`);
+      console.log(` Health check: http://localhost:${PORT}/health`);
+      console.log(` API Base: http://localhost:${PORT}/api`);
     });
   } catch (error) {
-    console.error("❌ Failed to start server:", error);
+    console.error(" Failed to start server:", error);
     process.exit(1);
   }
 };

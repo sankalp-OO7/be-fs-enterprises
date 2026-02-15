@@ -24,7 +24,6 @@ const connectToDatabase = async () => {
     }
     const mongoUri = process.env.MONGODB_URI ;
     
-    console.log(`Connecting to MongoDB: ${mongoUri}`);
     
     await mongoose.connect(mongoUri, {
       useNewUrlParser: true,
@@ -32,10 +31,10 @@ const connectToDatabase = async () => {
       serverSelectionTimeoutMS: 10000,
     });
     
-    console.log("✅ MongoDB connected successfully!");
+    console.log(" MongoDB connected successfully!");
     return true;
   } catch (error) {
-    console.error("❌ MongoDB connection failed:", error.message);
+    console.error(" MongoDB connection failed:", error.message);
     return false;
   }
 };
@@ -305,7 +304,7 @@ const seedDatabase = async () => {
       });
     }
     
-    console.log("\n✅ Seeding process completed successfully");
+    console.log("\n Seeding process completed successfully");
     
   } catch (error) {
     console.error("❌ Seeding process failed:", error.message);

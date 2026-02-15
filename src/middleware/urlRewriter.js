@@ -4,7 +4,6 @@ const urlRewriter = (req, res, next) => {
   
   if (originalUrl.startsWith(`/${stage}/`)) {
     req.url = originalUrl.replace(`/${stage}`, '');
-    console.log(`🔄 Rewriting URL: ${originalUrl} -> ${req.url}`);
   }
   next();
 };

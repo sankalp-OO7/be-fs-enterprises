@@ -98,7 +98,6 @@ const processImageSource = (file) => {
  */
 const uploadImage = async (file, folder = 'hardware-shop') => {
   try {
-    console.log('📤 Uploading image to Cloudinary...');
     
     const options = {
       folder: folder,
@@ -113,7 +112,6 @@ const uploadImage = async (file, folder = 'hardware-shop') => {
     // Upload the image
     const result = await cloudinary.uploader.upload(processedSource, options);
     
-    console.log('✅ Image uploaded successfully:', result.public_id);
     
     return {
       success: true,
@@ -126,7 +124,7 @@ const uploadImage = async (file, folder = 'hardware-shop') => {
     };
     
   } catch (error) {
-    console.error('❌ Cloudinary upload error:', error);
+    console.error(' Cloudinary upload error:', error);
     return {
       success: false,
       error: error.message
@@ -148,10 +146,9 @@ const uploadMultipleImages = async (files, folder = 'hardware-shop') => {
     const successfulUploads = results.filter(result => result.success);
     const failedUploads = results.filter(result => !result.success);
     
-    console.log(`📊 Uploaded ${successfulUploads.length}/${files.length} images`);
     
     if (failedUploads.length > 0) {
-      console.error('❌ Failed uploads:', failedUploads);
+      console.error(' Failed uploads:', failedUploads);
     }
     
     return {
@@ -164,7 +161,7 @@ const uploadMultipleImages = async (files, folder = 'hardware-shop') => {
     };
     
   } catch (error) {
-    console.error('❌ Multiple upload error:', error);
+    console.error(' Multiple upload error:', error);
     return {
       success: false,
       error: error.message
@@ -182,13 +179,12 @@ const deleteImage = async (publicId) => {
     const result = await cloudinary.uploader.destroy(publicId);
     
     if (result.result === 'ok') {
-      console.log('✅ Image deleted:', publicId);
       return { 
         success: true,
         message: 'Image deleted successfully'
       };
     } else {
-      console.error('❌ Failed to delete image:', publicId);
+      console.error(' Failed to delete image:', publicId);
       return { 
         success: false, 
         error: result.result,
@@ -197,7 +193,7 @@ const deleteImage = async (publicId) => {
     }
     
   } catch (error) {
-    console.error('❌ Cloudinary delete error:', error);
+    console.error(' Cloudinary delete error:', error);
     return { 
       success: false, 
       error: error.message,
@@ -216,7 +212,6 @@ const deleteImage = async (publicId) => {
  */
 const uploadImageMulter = async (req, folder = 'hardware-shop') => {
   try {
-    console.log('📤 Uploading image via multer...');
     
     if (!req.file) {
       return {
@@ -226,12 +221,10 @@ const uploadImageMulter = async (req, folder = 'hardware-shop') => {
       };
     }
 
-    console.log(`Processing file: ${req.file.originalname} (${req.file.size} bytes)`);
     
     // Upload buffer to Cloudinary
     const result = await bufferToCloudinary(req.file.buffer, folder);
     
-    console.log('✅ Image uploaded successfully via multer:', result.public_id);
     
     return {
       success: true,
@@ -246,7 +239,7 @@ const uploadImageMulter = async (req, folder = 'hardware-shop') => {
     };
     
   } catch (error) {
-    console.error('❌ Multer upload error:', error);
+    console.error(' Multer upload error:', error);
     return {
       success: false,
       error: error.message,
@@ -263,7 +256,6 @@ const uploadImageMulter = async (req, folder = 'hardware-shop') => {
  */
 const uploadMultipleImagesMulter = async (req, folder = 'hardware-shop') => {
   try {
-    console.log('📤 Uploading multiple images via multer...');
     
     if (!req.files || req.files.length === 0) {
       return {
@@ -273,7 +265,6 @@ const uploadMultipleImagesMulter = async (req, folder = 'hardware-shop') => {
       };
     }
 
-    console.log(`Processing ${req.files.length} files`);
     
     // Upload all files
     const uploadPromises = req.files.map(file => 
@@ -298,7 +289,6 @@ const uploadMultipleImagesMulter = async (req, folder = 'hardware-shop') => {
     const successfulUploads = results.filter(result => result.success);
     const failedUploads = results.filter(result => !result.success);
     
-    console.log(`📊 Uploaded ${successfulUploads.length}/${req.files.length} images via multer`);
     
     return {
       success: successfulUploads.length > 0,
@@ -310,7 +300,7 @@ const uploadMultipleImagesMulter = async (req, folder = 'hardware-shop') => {
     };
     
   } catch (error) {
-    console.error('❌ Multiple multer upload error:', error);
+    console.error(' Multiple multer upload error:', error);
     return {
       success: false,
       error: error.message,
@@ -333,7 +323,7 @@ const generateImageUrl = (publicId, transformations = {}) => {
     });
     return url;
   } catch (error) {
-    console.error('❌ URL generation error:', error);
+    console.error(' URL generation error:', error);
     return null;
   }
 };
@@ -351,7 +341,7 @@ const getImageInfo = async (publicId) => {
       data: result
     };
   } catch (error) {
-    console.error('❌ Get image info error:', error);
+    console.error(' Get image info error:', error);
     return {
       success: false,
       error: error.message
