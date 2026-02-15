@@ -3,6 +3,7 @@ const Product = require("../models/product.model");
 const Variant = require("../models/variant.model");
 const Category = require("../models/category.model");
 
+
 // Get all products with optional pagination
 exports.getAllProducts = async (req, res) => {
   try {
@@ -169,16 +170,18 @@ exports.getProductVariants = async (req, res) => {
     /* -----------------------------------------
        GUEST USER → LIMITED SAFE DATA
     ------------------------------------------ */
-
     const formattedVariants = variants.map((variant) => {
       return {
         sku: variant.sku ?? null,
+        id:variant._id,
         variantName: variant.variantName ?? null,
         variantAttributes: variant.variantAttributes ?? null,
+        variantDescription: variant.variantDescription ?? null,
+        invoicePrice: variant.invoicePrice ?? null,
+        estimatePrice: variant.estimatePrice ?? null,
         brand: variant.brand ?? null,
-        description: variant.description ?? null,
-        actualPrice: null, // 🔐 explicitly null
         stockQty: variant.stockQty ?? null,
+        itemCode: variant.itemCode ?? null,
       };
     });
 
