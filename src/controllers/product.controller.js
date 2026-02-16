@@ -174,7 +174,7 @@ exports.getProductVariants = async (req, res) => {
       return {
         sku: variant.sku ?? null,
         id:variant._id,
-         _id: v._id ,
+         _id: variant._id,
         variantName: variant.variantName ?? null,
         variantAttributes: variant.variantAttributes ?? null,
         variantDescription: variant.variantDescription ?? null,

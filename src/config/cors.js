@@ -7,12 +7,21 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || "https://fsinterprises.ve
 
 console.log(" CORS Allowed Origins:", allowedOrigins);
 
-// SIMPLIFIED CORS CONFIGURATION
 const corsOptions = {
-  origin: allowedOrigins, // Use simple array instead of function
+  origin: function (origin, callback) {
+    // allow requests with no origin (mobile apps, postman, curl)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      console.log("Blocked by CORS:", origin);
+      return callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "Accept"]
 };
 
 // Create the middleware
