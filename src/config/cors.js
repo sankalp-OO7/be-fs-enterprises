@@ -1,33 +1,35 @@
-const cors = require("cors");
+// src/config/cors.js
 
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || "https://fsinterprises.vercel.app,http://localhost:5173,http://localhost:3000")
-  .split(",")
-  .map(o => o.trim())
-  .filter(origin => origin.length > 0);
+// Parse allowed origins from environment variable
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
+  : [];
 
-console.log(" CORS Allowed Origins:", allowedOrigins);
+const corsMiddleware = (req, res, next) => {
+  const origin = req.headers.origin;
 
-const corsOptions = {
-  origin: function (origin, callback) {
-    // allow requests with no origin (mobile apps, postman, curl)
-    if (!origin) return callback(null, true);
+  // If the request has an Origin header and it's allowed, echo it back
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin'); // Important for cache behaviour
+  } else {
+    // If origin is not allowed, do not set the ACAO header.
+    // This will cause the browser to block the request (as it should).
+    // Optionally you could set it to '' or omit it entirely.
+  }
 
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    } else {
-      console.log("Blocked by CORS:", origin);
-      return callback(new Error("Not allowed by CORS"));
-    }
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "Accept"]
+  // Always set these headers for both actual and preflight requests
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+
+  // Handle preflight (OPTIONS) requests
+  if (req.method === 'OPTIONS') {
+    res.status(204).end(); // No content, but with CORS headers set above
+    return;
+  }
+
+  next();
 };
 
-// Create the middleware
-const corsMiddleware = cors(corsOptions);
-
-module.exports = {
-  corsMiddleware,
-  allowedOrigins
-};
+module.exports = { corsMiddleware, allowedOrigins };

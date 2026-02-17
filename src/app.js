@@ -1,3 +1,4 @@
+// src/app.js - Make sure you're not setting headers elsewhere
 const express = require("express");
 const dotenv = require("dotenv");
 
@@ -5,6 +6,7 @@ dotenv.config();
 
 const { connectDatabase } = require("./config/database");
 const { corsMiddleware, allowedOrigins } = require("./config/cors");
+// const { apiLimiter } = require("./middleware/rateLimiter");
 const requestLogger = require("./middleware/logger");
 const urlRewriter = require("./middleware/urlRewriter");
 const { errorHandler, notFoundHandler } = require("./middleware/errorHandlers");
@@ -22,16 +24,16 @@ const PORT = process.env.PORT || 5000;
 app.use(requestLogger);
 
 // 2. CORS Middleware (handles both regular and preflight requests)
-app.use(corsMiddleware);
+app.use(corsMiddleware); // This is now properly configured
 
-// 3. URL Rewriter (if still needed for serverless)
+// 3. URL Rewriter
 app.use(urlRewriter);
 
 // 4. Body parsers
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// 5. Health check route (simple, no CORS issues)
+// 5. Health check route
 app.get("/health", healthCheck);
 
 // 6. Main API routes
@@ -40,7 +42,7 @@ app.use("/api", routes);
 // 7. Error handling middleware
 app.use(errorHandler);
 
-// 8. 404 handler (MUST be last)
+// 8. 404 handler
 app.use(notFoundHandler);
 
 // Local server startup (for development)
