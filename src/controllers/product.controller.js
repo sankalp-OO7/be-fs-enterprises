@@ -1,8 +1,7 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 const Product = require("../models/product.model");
 const Variant = require("../models/variant.model");
 const Category = require("../models/category.model");
-
 
 // Get all products with optional pagination
 exports.getAllProducts = async (req, res) => {
@@ -120,7 +119,7 @@ exports.getProductVariants = async (req, res) => {
 
     const isAuthenticated = !!req.user;
     const product = await Product.findById(productId).select(
-      "productName categoryId description imageUrl"
+      "productName categoryId description imageUrl",
     );
 
     if (!product) {
@@ -131,7 +130,7 @@ exports.getProductVariants = async (req, res) => {
     }
 
     const variants = await Variant.find({ productId }).select(
-      "-createdAt -updatedAt -__v"
+      "-createdAt -updatedAt -__v",
     );
 
     /* -----------------------------------------
@@ -159,7 +158,7 @@ exports.getProductVariants = async (req, res) => {
           description: product.description,
           imageUrl: product.imageUrl,
           categoryName: product.categoryId?.name || null,
-        categoryId: product.categoryId?._id || null,
+          categoryId: product.categoryId?._id || null,
         },
         priceRange,
         count: variants.length,
@@ -173,11 +172,12 @@ exports.getProductVariants = async (req, res) => {
     const formattedVariants = variants.map((variant) => {
       return {
         sku: variant.sku ?? null,
-        id:variant._id,
-         _id: variant._id,
+        id: variant._id,
+        _id: variant._id,
         variantName: variant.variantName ?? null,
         variantAttributes: variant.variantAttributes ?? null,
         variantDescription: variant.variantDescription ?? null,
+        imageUrl: variant.imageUrl ?? null,
         invoicePrice: variant.invoicePrice ?? null,
         estimatePrice: variant.estimatePrice ?? null,
         brand: variant.brand ?? null,
@@ -309,7 +309,8 @@ exports.updateProduct = async (req, res) => {
     if (updateData.productName) {
       const existingProduct = await Product.findOne({
         productName: updateData.productName.trim(),
-        description: updateData.description || (await Product.findById(id)).description,
+        description:
+          updateData.description || (await Product.findById(id)).description,
         categoryId:
           updateData.categoryId || (await Product.findById(id)).categoryId,
         _id: { $ne: id },
@@ -326,7 +327,7 @@ exports.updateProduct = async (req, res) => {
     const product = await Product.findByIdAndUpdate(
       id,
       { $set: updateData },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     ).populate("categoryId", "name");
 
     if (!product) {
@@ -544,7 +545,6 @@ exports.getProductsByCategory = async (req, res) => {
   }
 };
 
-
 // In your product controller (product.controller.js)
 
 /**
@@ -555,10 +555,10 @@ exports.getProductsByCategory = async (req, res) => {
 exports.bulkUpdateProductWithVariants = async (req, res) => {
   try {
     const { id } = req.params;
-    const { 
-      product: productUpdates, 
-      variants: variantUpdates = [], 
-      variantsToDelete = []  // Add this parameter for deletions
+    const {
+      product: productUpdates,
+      variants: variantUpdates = [],
+      variantsToDelete = [], // Add this parameter for deletions
     } = req.body;
 
     // 1. Validate product exists
@@ -580,26 +580,27 @@ exports.bulkUpdateProductWithVariants = async (req, res) => {
       // Validate all variants to delete belong to this product
       const variantsToRemove = await Variant.find({
         _id: { $in: variantsToDelete },
-        productId: id
+        productId: id,
       });
-      
+
       if (variantsToRemove.length !== variantsToDelete.length) {
         return res.status(404).json({
           success: false,
-          message: "Some variants to delete were not found or don't belong to this product",
+          message:
+            "Some variants to delete were not found or don't belong to this product",
         });
       }
-      
+
       // Delete the variants
       await Variant.deleteMany({
-        _id: { $in: variantsToDelete }
+        _id: { $in: variantsToDelete },
       });
     }
 
     // 4. Separate new variants from existing variants
     const newVariants = [];
     const existingVariantUpdates = [];
-    
+
     for (const variant of variantUpdates) {
       // Check if variant has _id and if it's a valid ObjectId
       if (variant._id && mongoose.Types.ObjectId.isValid(variant._id)) {
@@ -607,31 +608,40 @@ exports.bulkUpdateProductWithVariants = async (req, res) => {
         existingVariantUpdates.push(variant);
       } else {
         // No _id or invalid ObjectId - new variant
-        const { _id, isNew, hasCustomImage, id: tempId, ...variantData } = variant;
+        const {
+          _id,
+          isNew,
+          hasCustomImage,
+          id: tempId,
+          ...variantData
+        } = variant;
         newVariants.push(variantData);
       }
     }
 
     // 5. Handle new variants
     if (newVariants.length > 0) {
-      const variantsToCreate = newVariants.map(variant => ({
+      const variantsToCreate = newVariants.map((variant) => ({
         ...variant,
         productId: id,
-        imageUrl: variant.imageUrl || (productUpdates?.imageUrl || existingProduct.imageUrl),
+        imageUrl:
+          variant.imageUrl ||
+          productUpdates?.imageUrl ||
+          existingProduct.imageUrl,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       }));
-      
+
       await Variant.insertMany(variantsToCreate);
     }
 
     // 6. Handle existing variants
     if (existingVariantUpdates.length > 0) {
       const updatePromises = [];
-      
+
       for (const variant of existingVariantUpdates) {
         const { _id, ...updateData } = variant;
-        
+
         // Validate variant exists and belongs to this product
         const existingVariant = await Variant.findOne({ _id, productId: id });
         if (!existingVariant) {
@@ -643,7 +653,7 @@ exports.bulkUpdateProductWithVariants = async (req, res) => {
           const duplicateVariant = await Variant.findOne({
             variantName: updateData.variantName.trim(),
             productId: id,
-            _id: { $ne: _id }
+            _id: { $ne: _id },
           });
 
           if (duplicateVariant) {
@@ -660,7 +670,7 @@ exports.bulkUpdateProductWithVariants = async (req, res) => {
         }
 
         // Handle image inheritance
-        if (!updateData.hasCustomImage && productUpdates?.imageUrl) {
+        if (!updateData.imageUrl && productUpdates?.imageUrl) {
           updateData.imageUrl = productUpdates.imageUrl;
         }
 
@@ -668,8 +678,8 @@ exports.bulkUpdateProductWithVariants = async (req, res) => {
           Variant.findByIdAndUpdate(
             _id,
             { $set: updateData },
-            { new: true, runValidators: true }
-          )
+            { new: true, runValidators: true },
+          ),
         );
       }
 
@@ -680,7 +690,7 @@ exports.bulkUpdateProductWithVariants = async (req, res) => {
     const updatedProduct = await Product.findById(id)
       .populate("categoryId", "name")
       .lean();
-    
+
     const updatedVariants = await Variant.find({ productId: id });
 
     res.status(200).json({
@@ -693,22 +703,21 @@ exports.bulkUpdateProductWithVariants = async (req, res) => {
           deleted: variantsToDelete?.length || 0,
           created: newVariants.length,
           updated: existingVariantUpdates.length,
-          total: updatedVariants.length
-        }
+          total: updatedVariants.length,
+        },
       },
     });
-
   } catch (error) {
-    console.error('Bulk update error:', error);
-    
-    if (error.name === 'ValidationError') {
+    console.error("Bulk update error:", error);
+
+    if (error.name === "ValidationError") {
       return res.status(400).json({
         success: false,
         message: "Validation Error",
-        errors: Object.values(error.errors).map(err => err.message)
+        errors: Object.values(error.errors).map((err) => err.message),
       });
     }
-    
+
     if (error.code === 11000) {
       return res.status(409).json({
         success: false,
