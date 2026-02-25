@@ -3,6 +3,48 @@ const Product = require("../models/product.model");
 const Variant = require("../models/variant.model");
 const Category = require("../models/category.model");
 
+
+const generateItemCode = async () => {
+  const START = 10001;
+
+  const lastVariant = await Variant.findOne(
+    { itemCode: { $exists: true, $ne: null } },
+    { itemCode: 1 },
+    { sort: { itemCode: -1 } }
+  );
+
+  let nextCode = lastVariant?.itemCode
+    ? Math.max(lastVariant.itemCode + 1, START)
+    : START;
+
+  while (await Variant.exists({ itemCode: nextCode })) {
+    nextCode++;
+  }
+
+  return nextCode;
+};
+
+const resolveItemCode = async (incomingCode, excludeId = null) => {
+  const isBlank =
+    !incomingCode ||
+    incomingCode === 0 ||
+    incomingCode === "" ||
+    isNaN(incomingCode);
+
+  if (isBlank) {
+    return await generateItemCode();
+  }
+
+  const query = { itemCode: incomingCode };
+  if (excludeId) query._id = { $ne: excludeId };
+
+  const conflict = await Variant.exists(query);
+  if (conflict) {
+    return await generateItemCode();
+  }
+
+  return incomingCode;
+};
 // Get all products with optional pagination
 exports.getAllProducts = async (req, res) => {
   try {
@@ -181,6 +223,7 @@ exports.getProductVariants = async (req, res) => {
         invoicePrice: variant.invoicePrice ?? null,
         estimatePrice: variant.estimatePrice ?? null,
         brand: variant.brand ?? null,
+        gst: variant.gst ?? null,
         stockQty: variant.stockQty ?? null,
         itemCode: variant.itemCode ?? null,
       };
@@ -558,7 +601,7 @@ exports.bulkUpdateProductWithVariants = async (req, res) => {
     const {
       product: productUpdates,
       variants: variantUpdates = [],
-      variantsToDelete = [], // Add this parameter for deletions
+      variantsToDelete = [],
     } = req.body;
 
     // 1. Validate product exists
@@ -570,14 +613,17 @@ exports.bulkUpdateProductWithVariants = async (req, res) => {
       });
     }
 
-    // 2. Process product updates
+    // 2. Process product updates (description is optional)
     if (productUpdates && Object.keys(productUpdates).length > 0) {
-      // ... (existing product update code remains the same)
+      await Product.findByIdAndUpdate(
+        id,
+        { $set: productUpdates },
+        { new: true, runValidators: true }
+      );
     }
 
-    // 3. Handle variant deletions FIRST
+    // 3. Handle variant deletions first
     if (variantsToDelete && variantsToDelete.length > 0) {
-      // Validate all variants to delete belong to this product
       const variantsToRemove = await Variant.find({
         _id: { $in: variantsToDelete },
         productId: id,
@@ -591,23 +637,17 @@ exports.bulkUpdateProductWithVariants = async (req, res) => {
         });
       }
 
-      // Delete the variants
-      await Variant.deleteMany({
-        _id: { $in: variantsToDelete },
-      });
+      await Variant.deleteMany({ _id: { $in: variantsToDelete } });
     }
 
-    // 4. Separate new variants from existing variants
+    // 4. Separate new vs existing variants
     const newVariants = [];
     const existingVariantUpdates = [];
 
     for (const variant of variantUpdates) {
-      // Check if variant has _id and if it's a valid ObjectId
       if (variant._id && mongoose.Types.ObjectId.isValid(variant._id)) {
-        // Valid ObjectId - existing variant
         existingVariantUpdates.push(variant);
       } else {
-        // No _id or invalid ObjectId - new variant
         const {
           _id,
           isNew,
@@ -619,36 +659,38 @@ exports.bulkUpdateProductWithVariants = async (req, res) => {
       }
     }
 
-    // 5. Handle new variants
+    // 5. Handle new variants — sequential to avoid itemCode race condition
     if (newVariants.length > 0) {
-      const variantsToCreate = newVariants.map((variant) => ({
-        ...variant,
-        productId: id,
-        imageUrl:
-          variant.imageUrl ||
-          productUpdates?.imageUrl ||
-          existingProduct.imageUrl,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }));
+      const variantsToCreate = [];
 
+      for (const variant of newVariants) {
+        // Each awaits before next — no two get same code
+        const itemCode = await resolveItemCode(variant.itemCode);
+
+        variantsToCreate.push({
+          ...variant,
+          itemCode,
+          productId: id,
+          imageUrl:
+            variant.imageUrl ||
+            productUpdates?.imageUrl ||
+            existingProduct.imageUrl,
+        });
+      }
+
+      // insertMany after all codes are resolved
       await Variant.insertMany(variantsToCreate);
     }
 
-    // 6. Handle existing variants
+    // 6. Handle existing variants — sequential to avoid itemCode race condition
     if (existingVariantUpdates.length > 0) {
-      const updatePromises = [];
-
       for (const variant of existingVariantUpdates) {
         const { _id, ...updateData } = variant;
 
-        // Validate variant exists and belongs to this product
         const existingVariant = await Variant.findOne({ _id, productId: id });
-        if (!existingVariant) {
-          continue; // Skip if variant doesn't exist (might have been deleted)
-        }
+        if (!existingVariant) continue;
 
-        // Check for duplicate variant names
+        // Check duplicate variant names
         if (updateData.variantName) {
           const duplicateVariant = await Variant.findOne({
             variantName: updateData.variantName.trim(),
@@ -664,29 +706,32 @@ exports.bulkUpdateProductWithVariants = async (req, res) => {
           }
         }
 
-        // Auto-update actualPrice when variantPrice changes
+        // Resolve itemCode sequentially — each one waits before generating next
+        updateData.itemCode = await resolveItemCode(
+          updateData.itemCode || existingVariant.itemCode,
+          _id
+        );
+
+        // Auto-update actualPrice
         if (updateData.variantPrice !== undefined) {
           updateData.actualPrice = updateData.variantPrice;
         }
 
-        // Handle image inheritance
+        // Image inheritance — only if variant has no image
         if (!updateData.imageUrl && productUpdates?.imageUrl) {
           updateData.imageUrl = productUpdates.imageUrl;
         }
 
-        updatePromises.push(
-          Variant.findByIdAndUpdate(
-            _id,
-            { $set: updateData },
-            { new: true, runValidators: true },
-          ),
+        // Await each update one by one
+        await Variant.findByIdAndUpdate(
+          _id,
+          { $set: updateData },
+          { new: true, runValidators: false } // false = description not required
         );
       }
-
-      await Promise.all(updatePromises);
     }
 
-    // 7. Fetch updated data
+    // 7. Fetch and return updated data
     const updatedProduct = await Product.findById(id)
       .populate("categoryId", "name")
       .lean();
@@ -721,7 +766,7 @@ exports.bulkUpdateProductWithVariants = async (req, res) => {
     if (error.code === 11000) {
       return res.status(409).json({
         success: false,
-        message: "Duplicate key error",
+        message: "Duplicate key error — itemCode conflict",
         error: error.message,
       });
     }

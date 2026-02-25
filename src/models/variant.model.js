@@ -48,6 +48,7 @@ const variantSchema = new mongoose.Schema(
     itemCode: {
       type: Number,
       unique: true,
+      sparse: true,
     },
     createdAt: {
       type: Date,
@@ -63,6 +64,6 @@ const variantSchema = new mongoose.Schema(
 
 // Indexes for better query performance
 variantSchema.index({ productId: 1, variantName: 1 });
-variantSchema.index({ itemCode: 1 }); // For quick lookup by itemCode
+
 
 module.exports = mongoose.model("Variant", variantSchema);
