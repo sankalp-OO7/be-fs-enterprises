@@ -34,6 +34,14 @@ const orderSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    mobileNo: {
+      type: String,
+      required: false,
+    },
+    email: {
+      type: String,
+      required: false,
+    },
     paymentMethod: {
       type: String,
       required: false,
@@ -46,7 +54,7 @@ const orderSchema = new mongoose.Schema(
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 module.exports = mongoose.model("Order", orderSchema);
