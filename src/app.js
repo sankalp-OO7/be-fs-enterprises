@@ -5,6 +5,7 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 const { connectDatabase } = require("./config/database");
+const { rateLimiterMiddleware } = require("./middleware/rateLimiter");
 const { corsMiddleware, allowedOrigins } = require("./config/cors");
 // const { apiLimiter } = require("./middleware/rateLimiter");
 const requestLogger = require("./middleware/logger");
@@ -22,6 +23,9 @@ const PORT = process.env.PORT || 5000;
 
 // 1. Request Logger
 app.use(requestLogger);
+
+//  Rate Limiter (using MongoDB)
+app.use(rateLimiterMiddleware);
 
 // 2. CORS Middleware (handles both regular and preflight requests)
 app.use(corsMiddleware); // This is now properly configured
