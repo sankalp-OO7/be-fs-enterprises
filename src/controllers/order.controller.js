@@ -48,3 +48,25 @@ exports.updateOrderStatus = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
+
+// Admin: delete any order
+exports.deleteOrder = async (req, res) => {
+  try {
+    const deleted = await orderService.deleteOrderById(req.params.id);
+    if (!deleted) return res.status(404).json({ message: 'Order not found' });
+    res.json({ message: 'Order deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// User: delete their own completed order
+exports.deleteMyCompletedOrder = async (req, res) => {
+  try {
+    await orderService.deleteCompletedOrderByUser(req.params.id, req.user._id);
+    res.json({ message: 'Order deleted successfully' });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
