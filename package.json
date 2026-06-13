@@ -33,6 +33,7 @@
     "mongoose": "^8.19.3",
     "multer": "2.0.2",
     "node-cache": "^5.1.2",
+    "seed": "^0.4.4",
     "serverless-http": "^4.0.0",
     "streamifier": "0.1.1",
     "xlsx": "^0.18.5"
