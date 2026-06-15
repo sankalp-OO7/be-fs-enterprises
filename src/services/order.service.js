@@ -20,3 +20,17 @@ exports.getOrderById = async (id) => {
 exports.updateOrderStatus = async (id, status) => {
   return await Order.findByIdAndUpdate(id, { status }, { new: true });
 };
+
+// Admin: delete any order by id
+exports.deleteOrderById = async (id) => {
+  return await Order.findByIdAndDelete(id);
+};
+
+// User: delete own completed order only
+exports.deleteCompletedOrderByUser = async (id, userId) => {
+  const order = await Order.findOne({ _id: id, userId });
+  if (!order) throw new Error('Order not found or does not belong to you');
+  if (order.status !== 'Completed') throw new Error('Only completed orders can be deleted');
+  return await order.deleteOne();
+};
+
