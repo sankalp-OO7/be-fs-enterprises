@@ -160,6 +160,9 @@ exports.getProductVariants = async (req, res) => {
     const { productId } = req.params;
 
     const isAuthenticated = !!req.user;
+    
+    const isViewer = req.user?.role === "viewer";
+    console.log("user:", req.user, "isAuthenticated:", isAuthenticated, "isViewer:", isViewer);
     const product = await Product.findById(productId).select(
       "productName categoryId description imageUrl",
     );
@@ -178,7 +181,7 @@ exports.getProductVariants = async (req, res) => {
     /* -----------------------------------------
        AUTHENTICATED USER → FULL DATA
     ------------------------------------------ */
-    if (isAuthenticated) {
+    if (isAuthenticated && !isViewer) {
       const prices = variants
         .map((v) => v.actualPrice)
         .filter((p) => typeof p === "number");
@@ -221,7 +224,7 @@ exports.getProductVariants = async (req, res) => {
         variantDescription: variant.variantDescription ?? null,
         imageUrl: variant.imageUrl ?? null,
         invoicePrice: variant.invoicePrice ?? null,
-        estimatePrice: variant.estimatePrice ?? null,
+        estimatePrice: isViewer ? 0 : variant.estimatePrice,
         brand: variant.brand ?? null,
         gst: variant.gst ?? null,
         stockQty: variant.stockQty ?? null,
