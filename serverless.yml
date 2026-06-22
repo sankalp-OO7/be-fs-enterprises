@@ -9,7 +9,7 @@ provider:
     NODE_ENV: ${self:provider.stage}
     MONGODB_URI: ${env:MONGODB_URI}
     JWT_SECRET: ${env:JWT_SECRET}
-    ALLOWED_ORIGINS: "https://fsinterprises.vercel.app,http://localhost:5173,https://www.fs-enterprises.in/"
+    ALLOWED_ORIGINS: "https://www.fs-enterprises.in"
 
   # IAM permissions
   iam:
@@ -34,9 +34,7 @@ functions:
           method: ANY
           cors:
             origin:
-              - https://fsinterprises.vercel.app
-              - http://localhost:5173
-              - https://www.fs-enterprises.in/
+              - https://www.fs-enterprises.in
             allowCredentials: true
             headers:
               - Content-Type
@@ -49,9 +47,7 @@ functions:
           method: ANY
           cors:
             origin:
-              - https://fsinterprises.vercel.app
-              - http://localhost:5173
-              - https://www.fs-enterprises.in/
+              - https://www.fs-enterprises.in
             allowCredentials: true
             headers:
               - Content-Type

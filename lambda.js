@@ -12,5 +12,10 @@ module.exports.handler = serverless(app, {
   request: function(request, event, context) {
     // Preserve original headers
     request.headers = request.headers || {};
+  },
+  response: function(response, event, context) {
+    // Ensure CORS headers are preserved
+    // If your Express app sets them, this keeps them
+    return response;
   }
 });
