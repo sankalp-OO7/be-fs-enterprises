@@ -51,6 +51,11 @@ const orderSchema = new mongoose.Schema(
       enum: ["Pending", "Paid", "Failed"],
       default: "Pending",
     },
+    billType: {
+      type: String,
+      enum: ["INVOICE", "SPECIAL PRICE"],
+      default: "INVOICE",
+    },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
   },
