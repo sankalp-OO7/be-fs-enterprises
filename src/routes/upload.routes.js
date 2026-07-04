@@ -96,7 +96,24 @@ router.post('/upload-multiple', async (req, res) => {
 
 // Single image direct upload (file)
 router.post('/upload-direct', uploadSingle, async (req, res) => {
-  
+    console.log("=== Upload Debug ===");
+  console.log("Body:", req.body);
+
+  console.log("File exists:", !!req.file);
+
+  if (req.file) {
+    console.log({
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      bufferLength: req.file.buffer?.length,
+    });
+
+    console.log(
+      "First 16 bytes:",
+      req.file.buffer.slice(0, 16).toString("hex")
+    );
+  }
   try {
     const { folder = 'hardware-shop' } = req.body;
     
