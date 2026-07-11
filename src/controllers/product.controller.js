@@ -647,17 +647,29 @@ exports.bulkUpdateProductWithVariants = async (req, res) => {
     const newVariants = [];
     const existingVariantUpdates = [];
 
+    // FIX: Better detection of existing vs new variants
     for (const variant of variantUpdates) {
-      if (variant._id && mongoose.Types.ObjectId.isValid(variant._id)) {
-        existingVariantUpdates.push(variant);
+      // Check if this is an existing variant (has valid ObjectId)
+      const hasValidId = variant._id && mongoose.Types.ObjectId.isValid(variant._id);
+      
+      if (hasValidId) {
+        // Check if this variant actually exists in the database
+        const exists = await Variant.findOne({ 
+          _id: variant._id, 
+          productId: id 
+        });
+        
+        if (exists) {
+          // This is an existing variant - update it
+          existingVariantUpdates.push(variant);
+        } else {
+          // ID exists but not found in DB - treat as new
+          const { _id, isNew, hasCustomImage, id: tempId, ...variantData } = variant;
+          newVariants.push(variantData);
+        }
       } else {
-        const {
-          _id,
-          isNew,
-          hasCustomImage,
-          id: tempId,
-          ...variantData
-        } = variant;
+        // No valid ID - this is a new variant
+        const { _id, isNew, hasCustomImage, id: tempId, ...variantData } = variant;
         newVariants.push(variantData);
       }
     }
@@ -685,31 +697,70 @@ exports.bulkUpdateProductWithVariants = async (req, res) => {
       await Variant.insertMany(variantsToCreate);
     }
 
-    // 6. Handle existing variants — sequential to avoid itemCode race condition
+    // 6. Handle existing variants — FIXED duplicate check
     if (existingVariantUpdates.length > 0) {
+      // First, collect all variants that will be updated (including new ones)
+      // This helps us detect duplicates within the entire payload
+      const allVariantNames = new Map();
+      
+      // Collect all variant names from both existing and new variants
+      for (const variant of variantUpdates) {
+        const name = variant.variantName?.trim();
+        if (name) {
+          const key = name.toLowerCase();
+          if (!allVariantNames.has(key)) {
+            allVariantNames.set(key, {
+              name: name,
+              _id: variant._id || null,
+              isNew: !variant._id || !mongoose.Types.ObjectId.isValid(variant._id)
+            });
+          } else {
+            // Duplicate found within the payload
+            return res.status(409).json({
+              success: false,
+              message: `Duplicate variant name "${name}" found in the same update request`,
+            });
+          }
+        }
+      }
+
+      // Now process each existing variant
       for (const variant of existingVariantUpdates) {
         const { _id, ...updateData } = variant;
 
         const existingVariant = await Variant.findOne({ _id, productId: id });
         if (!existingVariant) continue;
 
-        // Check duplicate variant names
+        // FIXED: Check duplicate variant names - ONLY check against OTHER variants in DB
         if (updateData.variantName) {
+          const trimmedName = updateData.variantName.trim();
+          
+          // Check if any OTHER variant (not this one) has this name
           const duplicateVariant = await Variant.findOne({
-            variantName: updateData.variantName.trim(),
+            variantName: trimmedName,
             productId: id,
-            _id: { $ne: _id },
+            _id: { $ne: _id }, // Exclude the current variant
           });
 
           if (duplicateVariant) {
-            return res.status(409).json({
-              success: false,
-              message: `Variant name "${updateData.variantName}" already exists for this product`,
-            });
+            // Check if this duplicate is also in the update list (will be updated)
+            // If the duplicate is being updated to a different name, it's fine
+            const isBeingUpdated = existingVariantUpdates.some(
+              v => v._id?.toString() === duplicateVariant._id.toString()
+            );
+            
+            // If the duplicate is NOT being updated, then it's a conflict
+            if (!isBeingUpdated) {
+              return res.status(409).json({
+                success: false,
+                message: `Variant name "${trimmedName}" already exists for this product`,
+                conflictWith: duplicateVariant._id,
+              });
+            }
           }
         }
 
-        // Resolve itemCode sequentially — each one waits before generating next
+        // Resolve itemCode sequentially
         updateData.itemCode = await resolveItemCode(
           updateData.itemCode || existingVariant.itemCode,
           _id
@@ -729,7 +780,7 @@ exports.bulkUpdateProductWithVariants = async (req, res) => {
         await Variant.findByIdAndUpdate(
           _id,
           { $set: updateData },
-          { new: true, runValidators: false } // false = description not required
+          { new: true, runValidators: false }
         );
       }
     }
