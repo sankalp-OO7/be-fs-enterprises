@@ -43,7 +43,7 @@ const variantSchema = new mongoose.Schema(
     },
     imageUrl: {
       type: String,
-      required: true,
+      required: false,
     },
     itemCode: {
       type: Number,

@@ -3,14 +3,13 @@ const Product = require("../models/product.model");
 const Variant = require("../models/variant.model");
 const Category = require("../models/category.model");
 
-
 const generateItemCode = async () => {
   const START = 10001;
 
   const lastVariant = await Variant.findOne(
     { itemCode: { $exists: true, $ne: null } },
     { itemCode: 1 },
-    { sort: { itemCode: -1 } }
+    { sort: { itemCode: -1 } },
   );
 
   let nextCode = lastVariant?.itemCode
@@ -160,9 +159,16 @@ exports.getProductVariants = async (req, res) => {
     const { productId } = req.params;
 
     const isAuthenticated = !!req.user;
-    
+
     const isViewer = req.user?.role === "viewer";
-    console.log("user:", req.user, "isAuthenticated:", isAuthenticated, "isViewer:", isViewer);
+    console.log(
+      "user:",
+      req.user,
+      "isAuthenticated:",
+      isAuthenticated,
+      "isViewer:",
+      isViewer,
+    );
     const product = await Product.findById(productId).select(
       "productName categoryId description imageUrl",
     );
@@ -592,13 +598,19 @@ exports.getProductsByCategory = async (req, res) => {
 };
 
 // In your product controller (product.controller.js)
-
 /**
  * @desc    Bulk update product and its variants
  * @route   PUT /api/products/:id/bulk-update
  * @access  Private/Admin
  */
 exports.bulkUpdateProductWithVariants = async (req, res) => {
+  const startTime = Date.now();
+  console.log("🚀 Bulk update started");
+  console.log(`📊 Variants to process: ${req.body.variants?.length || 0}`);
+  console.log(
+    `🗑️ Variants to delete: ${req.body.variantsToDelete?.length || 0}`,
+  );
+
   try {
     const { id } = req.params;
     const {
@@ -607,7 +619,7 @@ exports.bulkUpdateProductWithVariants = async (req, res) => {
       variantsToDelete = [],
     } = req.body;
 
-    // 1. Validate product exists
+    // ==================== 1. VALIDATE PRODUCT ====================
     const existingProduct = await Product.findById(id);
     if (!existingProduct) {
       return res.status(404).json({
@@ -616,16 +628,16 @@ exports.bulkUpdateProductWithVariants = async (req, res) => {
       });
     }
 
-    // 2. Process product updates (description is optional)
+    // ==================== 2. UPDATE PRODUCT ====================
     if (productUpdates && Object.keys(productUpdates).length > 0) {
       await Product.findByIdAndUpdate(
         id,
         { $set: productUpdates },
-        { new: true, runValidators: true }
+        { new: true, runValidators: true },
       );
     }
 
-    // 3. Handle variant deletions first
+    // ==================== 3. DELETE VARIANTS ====================
     if (variantsToDelete && variantsToDelete.length > 0) {
       const variantsToRemove = await Variant.find({
         _id: { $in: variantsToDelete },
@@ -641,46 +653,100 @@ exports.bulkUpdateProductWithVariants = async (req, res) => {
       }
 
       await Variant.deleteMany({ _id: { $in: variantsToDelete } });
+      console.log(`🗑️ Deleted ${variantsToDelete.length} variants`);
     }
 
-    // 4. Separate new vs existing variants
+    // ==================== 4. SEPARATE NEW VS EXISTING ====================
     const newVariants = [];
     const existingVariantUpdates = [];
 
-    // FIX: Better detection of existing vs new variants
     for (const variant of variantUpdates) {
-      // Check if this is an existing variant (has valid ObjectId)
-      const hasValidId = variant._id && mongoose.Types.ObjectId.isValid(variant._id);
-      
+      const hasValidId =
+        variant._id && mongoose.Types.ObjectId.isValid(variant._id);
+
       if (hasValidId) {
-        // Check if this variant actually exists in the database
-        const exists = await Variant.findOne({ 
-          _id: variant._id, 
-          productId: id 
+        const exists = await Variant.findOne({
+          _id: variant._id,
+          productId: id,
         });
-        
+
         if (exists) {
-          // This is an existing variant - update it
           existingVariantUpdates.push(variant);
         } else {
-          // ID exists but not found in DB - treat as new
-          const { _id, isNew, hasCustomImage, id: tempId, ...variantData } = variant;
+          const {
+            _id,
+            isNew,
+            hasCustomImage,
+            id: tempId,
+            ...variantData
+          } = variant;
           newVariants.push(variantData);
         }
       } else {
-        // No valid ID - this is a new variant
-        const { _id, isNew, hasCustomImage, id: tempId, ...variantData } = variant;
+        const {
+          _id,
+          isNew,
+          hasCustomImage,
+          id: tempId,
+          ...variantData
+        } = variant;
         newVariants.push(variantData);
       }
     }
 
-    // 5. Handle new variants — sequential to avoid itemCode race condition
+    console.log(
+      `📝 ${newVariants.length} new variants, 🔄 ${existingVariantUpdates.length} existing variants`,
+    );
+
+    // ==================== 5. CHECK DUPLICATES IN PAYLOAD ====================
+    const allVariantNames = new Map();
+    for (const variant of variantUpdates) {
+      const name = variant.variantName?.trim();
+      if (name) {
+        const key = name.toLowerCase();
+        if (allVariantNames.has(key)) {
+          return res.status(409).json({
+            success: false,
+            message: `Duplicate variant name "${name}" found in the same update request`,
+          });
+        }
+        allVariantNames.set(key, {
+          name: name,
+          _id: variant._id || null,
+          isNew: !variant._id || !mongoose.Types.ObjectId.isValid(variant._id),
+        });
+      }
+    }
+
+    // ==================== 6. BULK CREATE NEW VARIANTS (Optimized) ====================
     if (newVariants.length > 0) {
+      console.log(`📝 Creating ${newVariants.length} new variants...`);
+
+      // Get all existing item codes for this product to avoid duplicates
+      const existingItemCodes = await Variant.distinct("itemCode");
+      const usedItemCodes = new Set(
+        existingItemCodes
+          .filter((code) => code !== null && code !== undefined)
+          .map((code) => Number(code)),
+      );
+
       const variantsToCreate = [];
+      let maxCode =
+        usedItemCodes.size > 0 ? Math.max(...Array.from(usedItemCodes)) : 1000;
 
       for (const variant of newVariants) {
-        // Each awaits before next — no two get same code
-        const itemCode = await resolveItemCode(variant.itemCode);
+        // Generate unique itemCode
+        let itemCode = variant.itemCode;
+
+        if (!itemCode || usedItemCodes.has(itemCode.toString())) {
+          // Generate new code
+          do {
+            maxCode++;
+            itemCode = maxCode;
+          } while (usedItemCodes.has(itemCode.toString()));
+        }
+
+        usedItemCodes.add(itemCode.toString());
 
         variantsToCreate.push({
           ...variant,
@@ -693,105 +759,152 @@ exports.bulkUpdateProductWithVariants = async (req, res) => {
         });
       }
 
-      // insertMany after all codes are resolved
-      await Variant.insertMany(variantsToCreate);
+      // Use insertMany for better performance
+      if (variantsToCreate.length > 0) {
+        await Variant.insertMany(variantsToCreate);
+        console.log(`✅ Created ${variantsToCreate.length} new variants`);
+      }
     }
 
-    // 6. Handle existing variants — FIXED duplicate check
+    // ==================== 7. BULK UPDATE EXISTING VARIANTS (Optimized) ====================
     if (existingVariantUpdates.length > 0) {
-      // First, collect all variants that will be updated (including new ones)
-      // This helps us detect duplicates within the entire payload
-      const allVariantNames = new Map();
-      
-      // Collect all variant names from both existing and new variants
-      for (const variant of variantUpdates) {
-        const name = variant.variantName?.trim();
-        if (name) {
-          const key = name.toLowerCase();
-          if (!allVariantNames.has(key)) {
-            allVariantNames.set(key, {
-              name: name,
-              _id: variant._id || null,
-              isNew: !variant._id || !mongoose.Types.ObjectId.isValid(variant._id)
+      console.log(
+        `🔄 Updating ${existingVariantUpdates.length} existing variants...`,
+      );
+
+      // First, check all duplicate names at once
+      const duplicateCheckPromises = existingVariantUpdates.map(
+        async (variant) => {
+          const { _id, ...updateData } = variant;
+          const trimmedName = updateData.variantName?.trim();
+
+          if (trimmedName) {
+            const duplicateVariant = await Variant.findOne({
+              variantName: trimmedName,
+              productId: id,
+              _id: { $ne: _id },
             });
-          } else {
-            // Duplicate found within the payload
-            return res.status(409).json({
-              success: false,
-              message: `Duplicate variant name "${name}" found in the same update request`,
-            });
+
+            if (duplicateVariant) {
+              const isBeingUpdated = existingVariantUpdates.some(
+                (v) => v._id?.toString() === duplicateVariant._id.toString(),
+              );
+
+              if (!isBeingUpdated) {
+                return {
+                  conflict: true,
+                  message: `Variant name "${trimmedName}" already exists for this product`,
+                  conflictWith: duplicateVariant._id,
+                };
+              }
+            }
           }
-        }
+          return { conflict: false };
+        },
+      );
+
+      const duplicateResults = await Promise.all(duplicateCheckPromises);
+      const conflict = duplicateResults.find((r) => r.conflict);
+      if (conflict) {
+        return res.status(409).json({
+          success: false,
+          message: conflict.message,
+          conflictWith: conflict.conflictWith,
+        });
       }
 
-      // Now process each existing variant
+      // Prepare bulk update operations
+      const bulkOps = [];
+      const existingItemCodes = await Variant.distinct("itemCode");
+      const usedItemCodes = new Set(
+        existingItemCodes
+          .filter((code) => code !== null && code !== undefined)
+          .map((code) => Number(code)),
+      );
+
+      // Get current max code
+      let maxCode =
+        usedItemCodes.size > 0 ? Math.max(...Array.from(usedItemCodes)) : 1000;
+
       for (const variant of existingVariantUpdates) {
         const { _id, ...updateData } = variant;
 
         const existingVariant = await Variant.findOne({ _id, productId: id });
         if (!existingVariant) continue;
 
-        // FIXED: Check duplicate variant names - ONLY check against OTHER variants in DB
-        if (updateData.variantName) {
-          const trimmedName = updateData.variantName.trim();
-          
-          // Check if any OTHER variant (not this one) has this name
-          const duplicateVariant = await Variant.findOne({
-            variantName: trimmedName,
-            productId: id,
-            _id: { $ne: _id }, // Exclude the current variant
-          });
+        // Handle itemCode
+        let itemCode = updateData.itemCode;
 
-          if (duplicateVariant) {
-            // Check if this duplicate is also in the update list (will be updated)
-            // If the duplicate is being updated to a different name, it's fine
-            const isBeingUpdated = existingVariantUpdates.some(
-              v => v._id?.toString() === duplicateVariant._id.toString()
-            );
-            
-            // If the duplicate is NOT being updated, then it's a conflict
-            if (!isBeingUpdated) {
-              return res.status(409).json({
-                success: false,
-                message: `Variant name "${trimmedName}" already exists for this product`,
-                conflictWith: duplicateVariant._id,
-              });
-            }
-          }
+        // If frontend sends null/undefined/empty,
+        // keep the existing itemCode
+        if (itemCode === null || itemCode === undefined || itemCode === "") {
+          itemCode = existingVariant.itemCode;
         }
 
-        // Resolve itemCode sequentially
-        updateData.itemCode = await resolveItemCode(
-          updateData.itemCode || existingVariant.itemCode,
-          _id
-        );
+        if (itemCode !== null && itemCode !== undefined) {
+          const codeNumber = Number(itemCode);
+
+          // Check if this code belongs to another variant
+          const codeAlreadyUsed =
+            usedItemCodes.has(codeNumber) &&
+            Number(existingVariant.itemCode) !== codeNumber;
+
+          if (codeAlreadyUsed) {
+            // Generate a new unique code
+            do {
+              maxCode++;
+              itemCode = maxCode;
+            } while (usedItemCodes.has(Number(itemCode)));
+          }
+
+          usedItemCodes.add(Number(itemCode));
+        }
+        updateData.itemCode = Number(itemCode);
 
         // Auto-update actualPrice
         if (updateData.variantPrice !== undefined) {
           updateData.actualPrice = updateData.variantPrice;
         }
 
-        // Image inheritance — only if variant has no image
+        // Image inheritance
         if (!updateData.imageUrl && productUpdates?.imageUrl) {
           updateData.imageUrl = productUpdates.imageUrl;
         }
 
-        // Await each update one by one
-        await Variant.findByIdAndUpdate(
-          _id,
-          { $set: updateData },
-          { new: true, runValidators: false }
-        );
+        // Remove fields that shouldn't be updated
+        delete updateData.createdAt;
+        delete updateData.__v;
+
+        bulkOps.push({
+          updateOne: {
+            filter: { _id, productId: id },
+            update: {
+              $set: {
+                ...updateData,
+                updatedAt: new Date(),
+              },
+            },
+          },
+        });
+      }
+
+      // Execute all updates in bulk
+      if (bulkOps.length > 0) {
+        const result = await Variant.bulkWrite(bulkOps);
+        console.log(`✅ Updated ${result.modifiedCount} variants`);
       }
     }
 
-    // 7. Fetch and return updated data
-    const updatedProduct = await Product.findById(id)
-      .populate("categoryId", "name")
-      .lean();
+    // ==================== 8. FETCH UPDATED DATA ====================
+    const [updatedProduct, updatedVariants] = await Promise.all([
+      Product.findById(id).populate("categoryId", "name").lean(),
+      Variant.find({ productId: id }),
+    ]);
 
-    const updatedVariants = await Variant.find({ productId: id });
+    const endTime = Date.now();
+    console.log(`✅ Bulk update completed in ${endTime - startTime}ms`);
 
+    // ==================== 9. RESPONSE ====================
     res.status(200).json({
       success: true,
       message: `Bulk update successful - Deleted: ${variantsToDelete?.length || 0}, Created: ${newVariants.length}, Updated: ${existingVariantUpdates.length}`,
@@ -803,12 +916,15 @@ exports.bulkUpdateProductWithVariants = async (req, res) => {
           created: newVariants.length,
           updated: existingVariantUpdates.length,
           total: updatedVariants.length,
+          executionTime: `${endTime - startTime}ms`,
         },
       },
     });
   } catch (error) {
-    console.error("Bulk update error:", error);
+    console.error("❌ Bulk update error:", error);
+    console.error("Error stack:", error.stack);
 
+    // Handle specific error types
     if (error.name === "ValidationError") {
       return res.status(400).json({
         success: false,
@@ -825,10 +941,22 @@ exports.bulkUpdateProductWithVariants = async (req, res) => {
       });
     }
 
+    // MongoDB connection errors
+    if (
+      error.name === "MongoNetworkError" ||
+      error.name === "MongoTimeoutError"
+    ) {
+      return res.status(503).json({
+        success: false,
+        message: "Database connection error. Please try again.",
+      });
+    }
+
+    // Generic error
     res.status(500).json({
       success: false,
-      message: "Error in bulk update",
-      error: error.message,
+      message: error.message || "Error in bulk update",
+      ...(process.env.NODE_ENV === "development" && { stack: error.stack }),
     });
   }
 };
